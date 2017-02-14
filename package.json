@@ -4,7 +4,7 @@
   "description": "CMSC 191 UV Big Data Project",
   "main": "src/index.js",
   "scripts": {
-    "test": "babel-tape-runner 'src/**/*.js' | faucet",
+    "test": "babel-tape-runner 'src/**/*.spec.js' | faucet",
     "clean": "rimraf dist && mkdir -p dist",
     "build": "npm run clean && babel src -d dist -s --copy-files",
     "dev": "nodemon --watch 'src/**/*.js' --exec npm run start:dev",
@@ -21,6 +21,10 @@
     "CMSC191",
     "Project"
   ],
+  "engines": {
+    "node": "7.5.0",
+    "npm": "4.1.2"
+  },
   "author": "CMSC 191 Big Data UV Group 1",
   "license": "ISC",
   "bugs": {
