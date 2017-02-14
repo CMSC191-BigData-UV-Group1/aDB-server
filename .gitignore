@@ -1,0 +1,14 @@
+# IntelliJ project files
+.idea
+
+# VSCode project files
+.vscode
+
+# Nodejs
+node_modules/
+npm-debug.log*
+
+# Build
+build/
+dist/
+.env
