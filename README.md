@@ -21,8 +21,12 @@
         npm install
         npm run dev 
 
-- create your own development branch named whatever you want except: `production`, `staging`, `feature/xxx`
+- create your own development branch named whatever you want except: `production`, `staging`, `testing`, `feature/xxx`
 - code
+- integrate (push)
+  + push to remote branch `testing` if you want to test
+  + push to remote branch `staging` if you want to build (mimic production), test and deploy the code in the staging endpoint
+  + send push request to remote branch `production` if you want to deploy code in production endpoint
         
 # **Architecure**
 
