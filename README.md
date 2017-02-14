@@ -65,8 +65,11 @@
 - ES Next (ES7) Tutorials - <https://babeljs.io/learn-es2015>
 - MarkDown - <https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet>
 - 12 Factor App - <https://12factor.net/>
-- dotenv (implements the 3rd factor of the 12 factor app)
-- Continuous Integration/Development - <https://blog.openshift.com/cicd-with-openshift/>
+- Continuous Integration/Development
+  + <https://www.docker.com/use-cases/cicd>
+  + <https://technologyconversations.com/2016/01/14/the-short-history-of-cicd-tools/>
+  + <https://www.atlassian.com/continuous-delivery>
+  + <http://www.sap.com/developer/tutorials/ci-best-practices-ci-cd.html>
 
 ## **npm modules**
 
