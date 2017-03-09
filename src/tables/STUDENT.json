@@ -12,7 +12,7 @@
     },
     {
       "name": "Birthday",
-      "type": "VARCHAR",
+      "type": "DATE",
       "keys": []
     },
     {
