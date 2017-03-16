@@ -22,9 +22,10 @@ export class Parser {
       SELECT_STATEMENT: /^\s*SELECT\s+/i,
       INSERT_STATEMENT: /^\s*INSERT\s+INTO\s+/i,
       SELECT: {
-        COLUMNS: /(\s*(\w\.)?\w+\s*,)*(\s*(\w\.)?\w+\s*)?/,
-        FROM: /FROM\s*/i,
-        TABLES: /(\s*\w+\s*(\w+)?,)*(\s*\w+\s*(\w+)?)?/
+        COLUMNS: /(\s*(\w+\.)?\w+\s*,)*(\s*(\w+\.)?\w+\s*)?/,
+        FROM: /^FROM\s+/i,
+        TABLES: /(\s*\w+\s*(\w+)?,)*(\s*\w+\s*(\w+)?)?/,
+        WHERE: /\s*WHERE\s+(\w+\.)?\w+\s*=\s*(((\w+\.)?\w+)|(\'.*\'));/i
       }
     };
   }
@@ -55,11 +56,17 @@ export class Parser {
     let res = {
       data: {},
       columnAlias: {},
-      tableAlias: {}
+      tableAlias: {},
+      conditions: {}
     };
 
     // Removed processed regex
     sql = sql.replace(Parser.regex.SELECT_STATEMENT, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.COLUMNS)) {
+      return `Syntax error near ${sql}`;
+    }
 
     // Parse the columns
     let requestedColumns = sql.match(Parser.regex.SELECT.COLUMNS)[0].split(',');
@@ -77,13 +84,19 @@ export class Parser {
     // Removed processed regex
     sql = sql.replace(Parser.regex.SELECT.COLUMNS, '');
 
-    // If FROM statement is missing, return an error
+    // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.FROM)) {
-      return 'Missing FROM statement';
+      return `Syntax error near ${sql}`;
     }
+
 
     // Removed processed regex
     sql = sql.replace(Parser.regex.SELECT.FROM, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.TABLES)) {
+      return `Syntax error near ${sql}`;
+    }
 
     // Parse the tables
     let requestedTables = sql.match(Parser.regex.SELECT.TABLES)[0].split(',');
@@ -122,6 +135,27 @@ export class Parser {
         res.data[i] = res.tableAlias[res.columnAlias[i]];
       }
     }
+
+    // Removed processed regex
+    sql = sql.replace(Parser.regex.SELECT.TABLES, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.WHERE)) {
+      return `Syntax error near ${sql}`;
+    }
+
+    // Parse conditions
+    let conditions = sql.match(Parser.regex.SELECT.WHERE)[0];
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.WHERE)) {
+      return `Syntax error near ${sql}`;
+    }
+
+    let cond = sql.replace(/\s*WHERE\s+/, '');
+    let table = cond.split('=')[0].replace(/\.\w+\s*/, '');
+    res.conditions[res.tableAlias[table]] = {};
+    let temp = cond.split('=')[1].trim();
+    res.conditions[res.tableAlias[table]][cond.split('=')[0].replace(/(\w+\.)?/, '')] = temp.substring(0, temp.length-1);
 
     return res;
   }
