@@ -1,0 +1,29 @@
+{
+  "columns": [
+    {
+      "name": "StudNo",
+      "type": "VARCHAR",
+      "keys": ["FOREIGN"]
+    },
+    {
+      "name": "Description",
+      "type": "VARCHAR",
+      "keys": []
+    },
+    {
+      "name": "Action",
+      "type": "VARCHAR",
+      "keys": []
+    },
+    {
+      "name": "DateFiled",
+      "type": "DATE",
+      "keys": []
+    },
+    {
+      "name": "DateResolved",
+      "type": "DATE",
+      "keys": []
+    }
+  ]
+}
