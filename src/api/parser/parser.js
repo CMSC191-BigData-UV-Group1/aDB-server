@@ -5,15 +5,15 @@ const log = require('debug')('parser');
 import _ from 'lodash';
 
 // Tables
-import COURSE from './../../tables/COURSE';
+import COURSE         from './../../tables/COURSE';
 import COURSEOFFERING from './../../tables/COURSEOFFERING';
-import STUDCOURSE from './../../tables/STUDCOURSE';
-import STUDENT from './../../tables/STUDENT';
+import STUDCOURSE     from './../../tables/STUDCOURSE';
+import STUDENT        from './../../tables/STUDENT';
 import STUDENTHISTORY from './../../tables/STUDENTHISTORY';
 
 // Enums
-import SemOffered from './../../enums/SemOffered';
-import Semester from './../../enums/Semester';
+import SemOffered     from './../../enums/SemOffered';
+import Semester       from './../../enums/Semester';
 
 
 export class Parser {
@@ -22,10 +22,10 @@ export class Parser {
       SELECT_STATEMENT: /^\s*SELECT\s+/i,
       INSERT_STATEMENT: /^\s*INSERT\s+INTO\s+/i,
       SELECT: {
-        COLUMNS: /(\s*(\w+\.)?\w+\s*,)*(\s*(\w+\.)?\w+\s*)?/,
+        COLUMNS: /((\w+\.)?\w+\s*)(,\s*(\w+\.)?\w+\s*)*/,
         FROM: /^FROM\s+/i,
-        TABLES: /(\s*\w+\s*(\w+)?,)*(\s*\w+\s*(\w+)?)?/,
-        WHERE: /\s*WHERE\s+(\w+\.)?\w+\s*=\s*(((\w+\.)?\w+)|(\'.*\'));/i
+        TABLES: /(\w+(\s+\w+)?\s*)(,\s*\w+(\s+\w+)?\s*)*/,
+        WHERE: /^WHERE\s+(\w+\.)?\w+\s*=\s*(((\w+\.)?\w+)|(\'.*\'))\s*;/i
       }
     };
   }
@@ -89,7 +89,6 @@ export class Parser {
       return `Syntax error near ${sql}`;
     }
 
-
     // Removed processed regex
     sql = sql.replace(Parser.regex.SELECT.FROM, '');
 
@@ -130,7 +129,6 @@ export class Parser {
 
       // Reduce the data based on aliasing (if there is)
       res.data = {};
-
       for (let i of Object.keys(res.columnAlias)) {
         res.data[i] = res.tableAlias[res.columnAlias[i]];
       }
@@ -146,12 +144,13 @@ export class Parser {
 
     // Parse conditions
     let conditions = sql.match(Parser.regex.SELECT.WHERE)[0];
+
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
       return `Syntax error near ${sql}`;
     }
 
-    let cond = sql.replace(/\s*WHERE\s+/, '');
+    let cond = sql.replace(/^WHERE\s+/, '');
     let table = cond.split('=')[0].replace(/\.\w+\s*/, '');
     res.conditions[res.tableAlias[table]] = {};
     let temp = cond.split('=')[1].trim();
