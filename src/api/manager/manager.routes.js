@@ -21,7 +21,6 @@ router.post('/run', async (req, res) => {
     res.status(200).json({ result });
 
   } catch (error) {
-    console.log(error);
     // log error
     log(error);
 
