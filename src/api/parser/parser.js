@@ -26,6 +26,12 @@ export class Parser {
         FROM: /^FROM\s+/i,
         TABLES: /(\w+(\s+\w+)?\s*)(,\s*\w+(\s+\w+)?\s*)*/,
         WHERE: /^WHERE\s+(\w+\.)?\w+\s*=\s*(((\w+\.)?\w+)|(\'.*\'))\s*;/i
+      },
+      INSERT: {
+        TABLE: /\w+\s+/,
+        FORMAL_VALUES: /\(\s*(\w+\s*)(,\s*\w+)*\s*\)\s+/,
+        VALUES: /^VALUES\s+/i,
+        ACTUAL_VALUES: /\(\s*((\'.*\')|(?!,.+))\s*(,\s*(\'.*\')|(?!,.+))*\s*\)\s*;$/
       }
     };
   }
@@ -160,7 +166,54 @@ export class Parser {
   }
 
   static processINSERT(sql) {
-    return 'INSERT is not yet implemented';
+    let res = {};
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT_STATEMENT, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.TABLE)) {
+      return `Syntax error near ${sql}`;
+    }
+
+    // Parse the table
+    res['table'] = sql.match(Parser.regex.INSERT.TABLE)[0].trim();
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.TABLE, '');
+
+    // Parse the formal values
+    res['formalValues'] = sql.match(Parser.regex.INSERT.FORMAL_VALUES)[0].trim().replace(/\(|\)/g, '');
+    res['formalValues'] = res['formalValues'].split(',').map(e => e.trim());
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.FORMAL_VALUES, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.VALUES)) {
+      return `Syntax error near ${sql}`;
+    }
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.VALUES, '');
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.ACTUAL_VALUES)) {
+      return `Syntax error near ${sql}`;
+    }
+
+    // Parse the actual values
+    res['actualValues'] = sql.match(Parser.regex.INSERT.ACTUAL_VALUES)[0].trim().replace(/\(|\)|;/g, '');
+    res['actualValues'] = res['actualValues'].split(',').map(e => e.trim());
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.ACTUAL_VALUES, '');
+
+    if (res['formalValues'].length !== res['actualValues'].length) {
+      return `Length of formal values and actual values are not the same. Expected ${res['formalValues'].length}, got ${res['actualValues'].length}.`;
+    }
+
+    return res;
   }
 
   /**
