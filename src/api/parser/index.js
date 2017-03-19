@@ -1,9 +1,8 @@
 'use strict';
 
-import { parse } from './parser';
+import { Parser } from './parser';
 
-// exposed methods
+// exposed classes
 export default {
-  // main parser function
-  parse
+  Parser
 };
