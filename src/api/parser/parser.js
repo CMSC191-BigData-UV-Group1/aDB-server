@@ -22,10 +22,10 @@ export class Parser {
       SELECT_STATEMENT: /^\s*SELECT\s+/i,
       INSERT_STATEMENT: /^\s*INSERT\s+INTO\s+/i,
       SELECT: {
-        COLUMNS: /((\w+\.)?\w+\s*)(,\s*(\w+\.)?\w+\s*)*/,
+        COLUMNS: /(\*\s+)|((\w+\s*)(,\s*\w+\s*)*)/,
         FROM: /^FROM\s+/i,
-        TABLES: /(\w+(\s+\w+)?\s*)(,\s*\w+(\s+\w+)?\s*)*/,
-        WHERE: /^WHERE\s+(\w+\.)?\w+\s*=\s*(((\w+\.)?\w+)|(\'.*\'))\s*;/i
+        TABLES: /(\w+\s*)(,\s*\w+\s*)*/,
+        WHERE: /^WHERE\s+\w+\s*=\s*((\w+)|(\'.*\'))\s*;/i
       },
       INSERT: {
         TABLE: /\w+\s+/,
@@ -78,15 +78,6 @@ export class Parser {
     let requestedColumns = sql.match(Parser.regex.SELECT.COLUMNS)[0].split(',');
     requestedColumns = requestedColumns.map(e => e.trim());
 
-    // Check for alias
-    requestedColumns.forEach(e => {
-      if (e.match(/\w+\.\w+/))
-        res.columnAlias[e.replace(/\w+\./, '')] = e.replace(/\.\w+/, '');
-    });
-
-    // Remove alias
-    requestedColumns = requestedColumns.map(e => e.replace(/\w+\./, ''));
-
     // Removed processed regex
     sql = sql.replace(Parser.regex.SELECT.COLUMNS, '');
 
@@ -107,36 +98,30 @@ export class Parser {
     let requestedTables = sql.match(Parser.regex.SELECT.TABLES)[0].split(',');
     requestedTables = requestedTables.map(e => e.trim());
 
-    // Check for alias
-    requestedTables.forEach(e => {
-      if (e.match(/\w+\s+\w+/))
-        res.tableAlias[e.replace(/\w+\s+/, '')] = e.replace(/\s+\w+/, '');
-    });
-
-    // Remove alias
-    requestedTables = requestedTables.map(e => e.replace(/\s+\w+/, ''));
-
-    for (let i = 0; i < requestedColumns.length; i++) {
-      let col = requestedColumns[i];
-
-      let count = 0;
+    if (requestedColumns[0] === '*') {
       requestedTables.forEach(table => {
-        Parser.tables[table]['columns'].forEach(e => {
-          if (e['name'] == col)
-            res.data[col] = table;
-        })
-        count += Parser.tables[table]['columns'].filter(e => e['name'] === col).length;
+        Parser.tables[table]['columns'].forEach(col => {
+          res.data[col.name] = table;
+        });
       });
+    }
+    else {
+      for (let i = 0; i < requestedColumns.length; i++) {
+        let col = requestedColumns[i];
 
-      // Ambiguous columns (if no aliasing)
-      if (count > 1 && _.isEmpty(res.columnAlias) && _.isEmpty(res.tableAlias)) {
-        return `Column '${col}' in field list is ambiguous`;
-      }
+        let count = 0;
+        requestedTables.forEach(table => {
+          Parser.tables[table]['columns'].forEach(e => {
+            if (e['name'] == col)
+              res.data[col] = table;
+          })
+          count += Parser.tables[table]['columns'].filter(e => e['name'] === col).length;
+        });
 
-      // Reduce the data based on aliasing (if there is)
-      res.data = {};
-      for (let i of Object.keys(res.columnAlias)) {
-        res.data[i] = res.tableAlias[res.columnAlias[i]];
+        // Ambiguous columns (if no aliasing)
+        if (count > 1 && _.isEmpty(res.columnAlias) && _.isEmpty(res.tableAlias)) {
+          return `Column '${col}' in field list is ambiguous`;
+        }
       }
     }
 
@@ -145,6 +130,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
+      console.log(sql)
       return `Syntax error near ${sql}`;
     }
 
@@ -157,10 +143,10 @@ export class Parser {
     }
 
     let cond = sql.replace(/^WHERE\s+/, '');
-    let table = cond.split('=')[0].replace(/\.\w+\s*/, '');
-    res.conditions[res.tableAlias[table]] = {};
+    let column = cond.split('=')[0].trim();
+    res.conditions[requestedTables[0]] = {};
     let temp = cond.split('=')[1].trim();
-    res.conditions[res.tableAlias[table]][cond.split('=')[0].replace(/(\w+\.)?/, '')] = temp.substring(0, temp.length-1);
+    res.conditions[requestedTables[0]][column] = temp.substring(0, temp.length-1);
 
     return res;
   }
