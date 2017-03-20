@@ -15,17 +15,17 @@ router.post('/run', async (req, res) => {
     const result = dbmanager.run(req.body.sql);
 
     // log result
-    log(result);
+    log(`result `, result);
 
     // send result
     res.status(200).json({ result });
 
-  } catch (error) {
+  } catch (err) {
     // log error
-    log(error);
+    log(`run err `, err);
 
     // send error
-    res.status(500).json({ error });
+    res.status(500).json({ error: err.msg });
   }
 });
 
