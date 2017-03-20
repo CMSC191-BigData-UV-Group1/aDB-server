@@ -1,7 +1,5 @@
 'use strict';
 
-const log = require('debug')('parser');
-
 import _ from 'lodash';
 
 // Tables

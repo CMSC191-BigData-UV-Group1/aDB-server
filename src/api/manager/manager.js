@@ -1,6 +1,6 @@
 'use strict';
 
-import { Parser } from '../parser/parser';
+import { parse } from '../parser';
 
 export default class Manager {
   constructor(props) {
@@ -31,8 +31,8 @@ export default class Manager {
    */
   run(sql) {
     // generate query tree
-    const queryTree = Parser.parse(sql);
+    const queryTree = parse(sql);
 
-    return queryTree;
+
   }
 }
