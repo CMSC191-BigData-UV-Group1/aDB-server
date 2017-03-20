@@ -58,11 +58,21 @@ export class Parser {
     return columns;
   }
 
+  /**
+   * Parse the SELECT statement and check for syntax errors
+   * @param {String} sql - sql command to parse
+   * @returns {Object} res - Object that contains the important results of the parser
+   * @throws {*}
+   */
   static processSELECT(sql) {
+    /**
+     * res object will contain these keys:
+     *
+     * data - Object that contains key-value pairs of column-table
+     * conditions - the conditions in the WHERE statement (if there is)
+     */
     let res = {
       data: {},
-      columnAlias: {},
-      tableAlias: {},
       conditions: {}
     };
 
@@ -98,6 +108,7 @@ export class Parser {
     let requestedTables = sql.match(Parser.regex.SELECT.TABLES)[0].split(',');
     requestedTables = requestedTables.map(e => e.trim());
 
+    // If "*" is selected, add all the columns of all the tables to res.data
     if (requestedColumns[0] === '*') {
       requestedTables.forEach(table => {
         Parser.tables[table]['columns'].forEach(col => {
@@ -118,8 +129,8 @@ export class Parser {
           count += Parser.tables[table]['columns'].filter(e => e['name'] === col).length;
         });
 
-        // Ambiguous columns (if no aliasing)
-        if (count > 1 && _.isEmpty(res.columnAlias) && _.isEmpty(res.tableAlias)) {
+        // Checks for ambiguous columns (if no aliasing)
+        if (count > 1) {
           return `Column '${col}' in field list is ambiguous`;
         }
       }
@@ -151,7 +162,20 @@ export class Parser {
     return res;
   }
 
+  /**
+   * Parse the INSERT statement and check for syntax errors
+   * @param {String} sql - sql command to parse
+   * @returns {Object} res - Object that contains the important results of the parser
+   * @throws {*}
+   */
   static processINSERT(sql) {
+    /**
+     * res object will contain these keys:
+     *
+     * table - the table where the row will be inserted
+     * formalValues - the columns of the table that the data will be inserted
+     * actualValues - the actual values that corresponds to each columns in the formalValues
+     */
     let res = {};
 
     // Remove processed regex
