@@ -79,7 +79,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.COLUMNS)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Parse the columns
@@ -91,7 +91,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.FROM)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Removed processed regex
@@ -99,7 +99,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.TABLES)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Parse the tables
@@ -139,8 +139,8 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
-      console.log(sql)
-      throw new Error(`Syntax error near ${sql}`);
+      log(sql)
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Parse conditions
@@ -148,7 +148,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     let cond = sql.replace(/^WHERE\s+/, '');
@@ -181,7 +181,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.TABLE)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Parse the table
@@ -199,7 +199,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.VALUES)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Remove processed regex
@@ -207,7 +207,7 @@ export default class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.ACTUAL_VALUES)) {
-      throw new Error(`Syntax error near ${sql}`);
+      throw new Error(`Syntax error near '${sql}'`);
     }
 
     // Parse the actual values

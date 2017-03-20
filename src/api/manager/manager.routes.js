@@ -25,7 +25,7 @@ router.post('/run', async (req, res) => {
     log(`run err `, err);
 
     // send error
-    res.status(500).json({ error: err.msg });
+    res.status(200).json({ error: err.message });
   }
 });
 

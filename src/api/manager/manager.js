@@ -1,27 +1,13 @@
 'use strict';
 
-import { parse } from '../parser';
+const log = require('debug')('manager');
+
+import Database from '../database';
+import Parser from '../parser';
 
 export default class Manager {
   constructor(props) {
     // load databases from file and cache here
-  }
-
-  /**
-   * Get list of databases
-   * @returns {*} map of database metadata
-   */
-  getDatabases() {
-
-  }
-
-  /**
-   * Get list of tables of a database
-   * @param {String} database - database name
-   * @returns {*} map of the database's tables' metadata
-   */
-  getTables(database) {
-
   }
 
   /**
@@ -30,9 +16,18 @@ export default class Manager {
    * @throws {*}
    */
   run(sql) {
-    // generate query tree
-    const queryTree = parse(sql);
 
+    log(`======== RUNNING ========`)
+    log(`DB   `, 'default')
+    log(`Sql  `, sql)
+
+    // Connect to default DB
+    const db = Database.open('default', { createNotExist: true });
+
+    // generate query tree
+    const commands = Parser.parse(sql);
+
+    log(`parsed   `, commands)
 
   }
 }
