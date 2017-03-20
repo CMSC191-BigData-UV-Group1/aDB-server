@@ -1,0 +1,24 @@
+{
+  "columns": [
+    {
+      "name": "StudNo",
+      "type": "VARCHAR",
+      "keys": ["FOREIGN"]
+    },
+    {
+      "name": "CNo",
+      "type": "VARCHAR",
+      "keys": ["FOREIGN"]
+    },
+    {
+      "name": "Semester",
+      "type": "ENUM",
+      "keys": []
+    },
+    {
+      "name": "AcadYear",
+      "type": "VARCHAR",
+      "keys": []
+    }
+  ]
+}
