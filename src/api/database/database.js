@@ -191,29 +191,6 @@ export default class DatabaseType {
 
     log(found)
 
-    // Natural join? (Left join?)
-
-    // No joins
-    // if (_.keys(found).length < 2) return found;
-
-    // Merge all to index 0
-    // tables.slice(1).map((table, index) => {
-    //   const sameKeys = _.intersection(_.keys(tables[0].columns), _.keys(table.columns));
-
-    //   const conformFieldFunction = (filter, key) => ({
-    //     [key.toLowerCase()]: v => _.eq(v, filter[key])
-    //   })
-
-    //   const comparisonFunction = _.conforms(_.keys(filter).reduce((r, key) => ({ ...r, ... conformFieldFunction(filter, key)  }), {}))
-
-    //   // Merge to 1st table
-    //   found[0] = found[0].map(item => {
-
-
-
-    //   })
-    // })
-
     // Merge
     const all = _.values(found).reduce((r, v) => r.concat(v), []);
     log(`all `, all);

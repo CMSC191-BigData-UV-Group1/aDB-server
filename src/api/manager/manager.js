@@ -21,7 +21,7 @@ export default class Manager {
     log(`Sql  `, sql)
 
     // generate query tree
-    // const parsed = Parser.parse(sql);
+    const parsed = Parser.parse(sql);
     // const parsed = {
     //   type: 'insert',
     //   table: 'COURSE',
@@ -43,28 +43,28 @@ export default class Manager {
     //   ]
     // }
 
-    const parsed = {
-      type: 'select',
-      data: {
-        CNo: 'COURSE',
-        CTitle: 'COURSE',
-        AcadYear: 'COURSEOFFERING'
-      },
-      columnAlias: {
-        CNo: 'a',
-        CTitle: 'a',
-        AcadYear: 'b'
-      },
-      tableAlias: {
-        a: 'COURSE',
-        b: 'COURSEOFFERING'
-      },
-      conditions: {
-        COURSE: {
-          CNo: 'CMSC 191'
-        }
-      }
-    }
+    // const parsed = {
+    //   type: 'select',
+    //   data: {
+    //     CNo: 'COURSE',
+    //     CTitle: 'COURSE',
+    //     AcadYear: 'COURSEOFFERING'
+    //   },
+    //   columnAlias: {
+    //     CNo: 'a',
+    //     CTitle: 'a',
+    //     AcadYear: 'b'
+    //   },
+    //   tableAlias: {
+    //     a: 'COURSE',
+    //     b: 'COURSEOFFERING'
+    //   },
+    //   conditions: {
+    //     COURSE: {
+    //       CNo: 'CMSC 191'
+    //     }
+    //   }
+    // }
 
     log(`parsed   `, parsed)
 
