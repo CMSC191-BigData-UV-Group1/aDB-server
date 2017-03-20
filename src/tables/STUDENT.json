@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "StudNo",
+      "type": "VARCHAR",
+      "keys": ["PRIMARY"]
+    },
+    {
+      "name": "StudentName",
+      "type": "VARCHAR",
+      "keys": []
+    },
+    {
+      "name": "Birthday",
+      "type": "DATE",
+      "keys": []
+    },
+    {
+      "name": "Degree",
+      "type": "VARCHAR",
+      "keys": []
+    },
+    {
+      "name": "Major",
+      "type": "VARCHAR",
+      "keys": []
+    },
+    {
+      "name": "UnitsEarned",
+      "type": "INTEGER",
+      "keys": []
+    }
+  ]
+}

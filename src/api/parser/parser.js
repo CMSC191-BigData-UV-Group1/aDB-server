@@ -10,11 +10,11 @@ import STUDENT        from './../../tables/STUDENT';
 import STUDENTHISTORY from './../../tables/STUDENTHISTORY';
 
 // Enums
-import SemOffered     from './../../enums/SemOffered';
-import Semester       from './../../enums/Semester';
+// import SemOffered     from './../../enums/SemOffered';
+// import Semester       from './../../enums/Semester';
 
 
-export class Parser {
+export default class Parser {
   static get regex() {
     return {
       SELECT_STATEMENT: /^\s*SELECT\s+/i,
@@ -62,7 +62,7 @@ export class Parser {
    * @returns {Object} res - Object that contains the important results of the parser
    * @throws {*}
    */
-  static processSELECT(sql) {
+  static processSELECT(sql, db) {
     /**
      * res object will contain these keys:
      *
@@ -79,7 +79,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.COLUMNS)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Parse the columns
@@ -91,7 +91,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.FROM)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Removed processed regex
@@ -99,7 +99,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.TABLES)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Parse the tables
@@ -129,7 +129,7 @@ export class Parser {
 
         // Checks for ambiguous columns (if no aliasing)
         if (count > 1) {
-          return `Column '${col}' in field list is ambiguous`;
+          throw new Error(`Column '${col}' in field list is ambiguous`);
         }
       }
     }
@@ -140,7 +140,7 @@ export class Parser {
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
       console.log(sql)
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Parse conditions
@@ -148,7 +148,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.SELECT.WHERE)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     let cond = sql.replace(/^WHERE\s+/, '');
@@ -166,7 +166,7 @@ export class Parser {
    * @returns {Object} res - Object that contains the important results of the parser
    * @throws {*}
    */
-  static processINSERT(sql) {
+  static processINSERT(sql, db) {
     /**
      * res object will contain these keys:
      *
@@ -181,7 +181,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.TABLE)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Parse the table
@@ -199,7 +199,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.VALUES)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Remove processed regex
@@ -207,7 +207,7 @@ export class Parser {
 
     // Check for syntax error
     if (!sql.match(Parser.regex.INSERT.ACTUAL_VALUES)) {
-      return `Syntax error near ${sql}`;
+      throw new Error(`Syntax error near ${sql}`);
     }
 
     // Parse the actual values
@@ -218,7 +218,7 @@ export class Parser {
     sql = sql.replace(Parser.regex.INSERT.ACTUAL_VALUES, '');
 
     if (res['formalValues'].length !== res['actualValues'].length) {
-      return `Length of formal values and actual values are not the same. Expected ${res['formalValues'].length}, got ${res['actualValues'].length}.`;
+      throw new Error(`Length of formal values and actual values are not the same. Expected ${res['formalValues'].length}, got ${res['actualValues'].length}.`);
     }
 
     return res;
@@ -230,17 +230,17 @@ export class Parser {
    * @returns {*}
    * @throws {*}
    */
-  static parse(sql) {
+  static parse(sql, db) {
     // Check if matched with SELECT statement
     if (sql.match(Parser.regex.SELECT_STATEMENT)) {
-      return Parser.processSELECT(sql);
+      return Parser.processSELECT(sql, db);
     }
 
     // Check if matched with INSERT statement
     if (sql.match(Parser.regex.INSERT_STATEMENT)) {
-      return Parser.processINSERT(sql);
+      return Parser.processINSERT(sql, db);
     }
 
-    return 'Syntax Error. Please use either SELECT or INSERT statements only.';
+    throw new Error('Syntax Error. Please use either SELECT or INSERT statements only.')
   }
 }
