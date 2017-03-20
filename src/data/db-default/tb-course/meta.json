@@ -1,0 +1,54 @@
+{
+  "database": "default",
+  "name": "Course",
+  "schema": {
+    "cno": {
+      "_options": {
+        "path": "CNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "ctitle": {
+      "_options": {
+        "path": "CTitle",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "cdesc": {
+      "_options": {
+        "path": "CDesc",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "noofunits": {
+      "_options": {
+        "path": "NoOfUnits",
+        "type": "INTEGER",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "haslab": {
+      "_options": {
+        "path": "HasLab",
+        "type": "INTEGER",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "semoffered": {
+      "_options": {
+        "path": "SemOffered",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    }
+  }
+}

@@ -1,5 +1,7 @@
 'use strict';
 
+const log = require('debug')('parser')
+
 import _ from 'lodash';
 
 // Tables
@@ -70,6 +72,7 @@ export default class Parser {
      * conditions - the conditions in the WHERE statement (if there is)
      */
     let res = {
+      command: 'select',
       data: {},
       conditions: {}
     };
@@ -174,7 +177,9 @@ export default class Parser {
      * formalValues - the columns of the table that the data will be inserted
      * actualValues - the actual values that corresponds to each columns in the formalValues
      */
-    let res = {};
+    let res = {
+      command: 'insert'
+    };
 
     // Remove processed regex
     sql = sql.replace(Parser.regex.INSERT_STATEMENT, '');

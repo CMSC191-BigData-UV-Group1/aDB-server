@@ -12,7 +12,7 @@ const dbmanager = new Manager();
 router.post('/run', async (req, res) => {
   try {
     // run sql command to the db manager
-    const result = dbmanager.run(req.body.sql);
+    const result = await dbmanager.run(req.body.sql);
 
     // log result
     log(`result `, result);
@@ -28,37 +28,5 @@ router.post('/run', async (req, res) => {
     res.status(200).json({ error: err.message });
   }
 });
-
-/*
-// Promise version
-router.post('/run', (req, res) =>
-  // run sql command to the db manager
-  dbmanager.run(req.body.sql)
-    .then(result => {
-      // log result
-      log(result);
-
-      // send result
-      res.status(200).json({ result });
-    })
-    .catch(error => {
-      // log error
-      log(error);
-
-      // send error
-      res.status(500).json({ error });
-    })
-);
-
-// Promise version (shorter using comma)
-router.post('/run', (req, res) =>
-  // run sql command to the db manager
-  dbmanager.run(req.body.sql)
-    // log and send result
-    .then(result => (log(result), res.status(200).json({ result })))
-    // log and send error
-    .catch(error => (log(error), res.status(500).json({ error })))
-);
-*/
 
 export default router;

@@ -1,0 +1,54 @@
+{
+  "database": "default",
+  "name": "Student",
+  "schema": {
+    "studno": {
+      "_options": {
+        "path": "StudNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "studname": {
+      "_options": {
+        "path": "StudName",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "birthday": {
+      "_options": {
+        "path": "Birthday",
+        "type": "DATE",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "degree": {
+      "_options": {
+        "path": "Degree",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "major": {
+      "_options": {
+        "path": "Major",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "unitsearned": {
+      "_options": {
+        "path": "UnitsEarned",
+        "type": "INTEGER",
+        "validators": [],
+        "setters": []
+      }
+    }
+  }
+}
