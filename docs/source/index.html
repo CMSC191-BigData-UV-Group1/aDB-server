@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl">
+  <title data-ice="title">ADB Server API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/CMSC191-BigData-UV-Group1/aDB-server" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-routes">routes</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database/database.js~DatabaseType.html">DatabaseType</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-DB_PREFIX">DB_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-PATH_DATA_ROOT">PATH_DATA_ROOT</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database-table</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/database-table.js~TableSchema.html">TableSchema</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/field-definition.js~FieldDefinition.html">FieldDefinition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TABLE_PREFIX">TABLE_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_DATE">TYPE_DATE</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_INTEGER">TYPE_INTEGER</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_TIME">TYPE_TIME</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_VARCHAR">TYPE_VARCHAR</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/default-models</div><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-db">db</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/manager</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/manager/manager.js~Manager.html">Manager</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-router">router</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/parser</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/parser/parser.js~Parser.html">Parser</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><div data-ice="index" class="github-markdown"><h1 id="-development-"><strong>Development</strong></h1>
+<ul>
+<li>clone the repo <code>https://github.com/CMSC191-BigData-UV-Group1/aDB-server.git</code></li>
+<li><p>create a gitignore&apos;d <code>.env</code> file in the root of the project</p>
+<pre><code><code class="source-code prettyprint">  // .env file (following values are just recommended values)
+  # ==================================
+  #              APP
+  # ==================================
+
+  PORT=3000
+
+  # ==================================
+  #          DEBUG MODULES
+  # ==================================
+
+  # this will output all debug-log with namespace starting with &apos;app&apos;
+  DEBUG=app*</code>
+</code></pre></li>
+<li><p>run these</p>
+<pre><code><code class="source-code prettyprint">  npm install
+  npm run dev </code>
+</code></pre></li>
+<li><p>create your own development branch named whatever you want except: <code>production</code>, <code>staging</code>, <code>testing</code>, <code>feature/xxx</code></p>
+</li>
+<li>code</li>
+<li>integrate (push)<ul>
+<li>push to remote branch <code>testing</code> if you want to test</li>
+<li>push to remote branch <code>staging</code> if you want to build (mimic production), test and deploy the code in the staging endpoint</li>
+<li>send push request to remote branch <code>production</code> if you want to deploy code in production endpoint</li>
+</ul>
+</li>
+</ul>
+<h1 id="-architecure-"><strong>Architecure</strong></h1>
+<h2 id="-project-structure-"><strong>Project Structure</strong></h2>
+<pre><code><code class="source-code prettyprint">|-- dist                            - built(transpiled) files
+|-- src                             - source code
+|   |-- api
+|   |   `-- moduleX                 - module folder
+|   |       |-- moduleX.spec.js     - module unit test
+|   |       |-- moduleX.js          - module class or functions
+|   |       `-- index.js            - exposed attributes/functions of the module
+|   |
+|   |-- routes.js                   - routes to expose
+|   |-- app.js                      - server setup
+|   `-- index.js                    - adds polyfill (for async/await)
+|
+|-- .babelrc                        - babel config files (ES7)
+|-- .editorconfig                   - IDE config (we can have different versions of this)
+|-- .npmrc                          - npm configuration
+|-- .nvmrc                          - if you use nvm for multiple node versions
+|-- Procfile                        - will be used by heroku
+`-- README.md                       </code>
+</code></pre><h2 id="-modules-"><strong>Modules</strong></h2>
+<h3 id="-class-manager-"><em>Class</em> <code>Manager</code></h3>
+<ul>
+<li>dbms main class</li>
+</ul>
+<h3 id="-functions-parser-"><em>Functions</em> <code>Parser</code></h3>
+<ul>
+<li>functions dealing with parsing and building query trees<h1 id="-technologies-"><strong>Technologies</strong></h1>
+</li>
+</ul>
+<h2 id="-misc-"><strong>misc</strong></h2>
+<ul>
+<li>ES Next (ES7) Tutorials - <a href="https://babeljs.io/learn-es2015">https://babeljs.io/learn-es2015</a></li>
+<li>MarkDown - <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet</a></li>
+<li>12 Factor App - <a href="https://12factor.net/">https://12factor.net/</a></li>
+<li>Continuous Integration/Development<ul>
+<li><a href="https://www.docker.com/use-cases/cicd">https://www.docker.com/use-cases/cicd</a></li>
+<li><a href="https://technologyconversations.com/2016/01/14/the-short-history-of-cicd-tools/">https://technologyconversations.com/2016/01/14/the-short-history-of-cicd-tools/</a></li>
+<li><a href="https://www.atlassian.com/continuous-delivery">https://www.atlassian.com/continuous-delivery</a></li>
+<li><a href="http://www.sap.com/developer/tutorials/ci-best-practices-ci-cd.html">http://www.sap.com/developer/tutorials/ci-best-practices-ci-cd.html</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="-npm-modules-"><strong>npm modules</strong></h2>
+<ul>
+<li><p><code>babel-cli</code>, <code>babel-core</code>, <code>babel-preset-es2015</code>, <code>babel-preset-stage-0</code> -- babel transpiler tech</p>
+</li>
+<li><p><code>babel-tape-runner</code>, <code>tape</code>, <code>tape-async</code>, <code>faucet</code> -- testing library and runner</p>
+</li>
+<li><p><code>rimraf</code> -- cross-platform equivalent of <code>rm -rf</code></p>
+</li>
+<li><p><code>cross-env</code> -- cross-platform environment variable loader</p>
+</li>
+<li><p><code>dotenv</code> -- multiple environment variables loader</p>
+</li>
+<li><p><code>babel-polyfill</code> -- nodejs async-await polyfill</p>
+</li>
+<li><p><code>chalk</code> -- console colors</p>
+</li>
+<li><p><code>cors</code> -- <em>CORS</em> connect middleware / helper</p>
+</li>
+<li><p><code>debug</code> -- controlled debugging</p>
+</li>
+<li><p><code>express</code> -- server framework</p>
+</li>
+<li><p><code>lodash</code> -- <em>Array</em>, <em>Object</em>, <em>String</em>, <em>etc.</em> utilities</p>
+</li>
+</ul>
+<h1 id="conventions">Conventions</h1>
+<ul>
+<li><p>use <code>save-exact</code> when adding npm modules</p>
+<pre><code><code class="source-code prettyprint">  // long version
+  npm install --save --save-exact some-module
+
+  // short version
+  npm i -SE some-module</code>
+</code></pre></li>
+<li><p>use strict mode in every js file</p>
+<pre><code><code class="source-code prettyprint">  // some-file.js
+  &apos;use strict&apos;;
+
+  // some codes</code>
+</code></pre></li>
+<li><p>create a debug-logger in files where you would use <code>console.log</code> to control logging</p>
+<pre><code><code class="source-code prettyprint">  // some-file.js
+  &apos;use strict;
+
+  // use the file name as first param of the debug module
+  const log = require(&apos;debug&apos;)(&apos;some-file&apos;)
+
+  // some codes</code>
+</code></pre></li>
+</ul>
+</div>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

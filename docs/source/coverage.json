@@ -1,0 +1,110 @@
+{
+  "coverage": "18.86%",
+  "expectCount": 53,
+  "actualCount": 10,
+  "files": {
+    "src/api/database/database.constants.js": {
+      "expectCount": 2,
+      "actualCount": 0,
+      "undocumentLines": [
+        8,
+        6
+      ]
+    },
+    "src/api/database/database.js": {
+      "expectCount": 10,
+      "actualCount": 3,
+      "undocumentLines": [
+        13,
+        14,
+        82,
+        34,
+        30,
+        164,
+        38
+      ]
+    },
+    "src/api/database-table/field-definition.js": {
+      "expectCount": 15,
+      "actualCount": 2,
+      "undocumentLines": [
+        14,
+        12,
+        10,
+        11,
+        9,
+        15,
+        128,
+        120,
+        112,
+        87,
+        124,
+        116,
+        27
+      ]
+    },
+    "src/api/manager/manager.js": {
+      "expectCount": 3,
+      "actualCount": 1,
+      "undocumentLines": [
+        7,
+        8
+      ]
+    },
+    "src/api/parser/parser.js": {
+      "expectCount": 7,
+      "actualCount": 3,
+      "undocumentLines": [
+        19,
+        49,
+        20,
+        39
+      ]
+    },
+    "src/api/database-table/database-table.constants.js": {
+      "expectCount": 1,
+      "actualCount": 0,
+      "undocumentLines": [
+        4
+      ]
+    },
+    "src/api/database-table/database-table.js": {
+      "expectCount": 12,
+      "actualCount": 1,
+      "undocumentLines": [
+        12,
+        85,
+        37,
+        13,
+        170,
+        139,
+        41,
+        33,
+        132,
+        29,
+        111
+      ]
+    },
+    "src/api/default-models/model-db.js": {
+      "expectCount": 1,
+      "actualCount": 0,
+      "undocumentLines": [
+        13
+      ]
+    },
+    "src/api/manager/manager.routes.js": {
+      "expectCount": 1,
+      "actualCount": 0,
+      "undocumentLines": [
+        8
+      ]
+    },
+    "src/routes.js": {
+      "expectCount": 1,
+      "actualCount": 0,
+      "undocumentLines": [
+        5
+      ]
+    }
+  }
+}

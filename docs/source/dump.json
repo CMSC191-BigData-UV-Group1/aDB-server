@@ -1,0 +1,2775 @@
+[
+  {
+    "__docId__": 0,
+    "kind": "file",
+    "name": "src/api/database/database.constants.js",
+    "content": "\n'use strict';\n\nimport path from 'path';\n\nexport const PATH_DATA_ROOT = path.join(__dirname, '..', '..', 'data');\n\nexport const DB_PREFIX = 'db-'\n",
+    "static": true,
+    "longname": "src/api/database/database.constants.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 1,
+    "kind": "variable",
+    "name": "PATH_DATA_ROOT",
+    "memberof": "src/api/database/database.constants.js",
+    "static": true,
+    "longname": "src/api/database/database.constants.js~PATH_DATA_ROOT",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database/database.constants.js",
+    "importStyle": "{PATH_DATA_ROOT}",
+    "description": null,
+    "lineNumber": 6,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 2,
+    "kind": "variable",
+    "name": "DB_PREFIX",
+    "memberof": "src/api/database/database.constants.js",
+    "static": true,
+    "longname": "src/api/database/database.constants.js~DB_PREFIX",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database/database.constants.js",
+    "importStyle": "{DB_PREFIX}",
+    "description": null,
+    "lineNumber": 8,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 3,
+    "kind": "file",
+    "name": "src/api/database/database.js",
+    "content": "\n'use strict';\n\nconst log = require('debug')('database');\n\nimport _ from 'lodash';\nimport $ from 'object-path';\nimport fs from 'fs-extra';\nimport path from 'path';\nimport globber from 'require-glob';``\nimport { PATH_DATA_ROOT, DB_PREFIX } from './database.constants';\n\nexport default class DatabaseType {\n  constructor(options) {\n    if (!options) throw new Error(`Options required`);\n    if (!options.name) throw new Error(`Name required`);\n    if (!options.location) throw new Error(`Location required`);\n\n    this._options = {\n      name:     options.name,\n      location: options.location,\n      tables:   { }\n    }\n\n    // Add tables\n    // if (options.tables && Array.isArray(options.tables))\n    //   options.tables.map(t => this.table(t.name, t));\n  }\n\n  get name() {\n    return $.get(this, '_options.name');\n  }\n\n  get location() {\n    return $.get(this, '_options.location');\n  }\n\n  get tables() {\n    return $.get(this, '_options.tables');\n  }\n\n  /**\n   * Get / Create a table model\n   *\n   * @param {String} name\n   * @param {Schema} [schema]\n   */\n  table(name, schema) {\n    if (!name) throw new Error(`Table name required`);\n\n    const normalizedName = name.toLowerCase();\n\n    // Getter\n    if (!schema) {\n      // log(`============ GET TABLE ============`)\n      // log(`Name   `, name)\n      return $.get(this, '_options.tables.' + normalizedName);\n    }\n\n    // log(`============ SET TABLE ============`)\n    // log(`Name     `, name)\n    // log(`Schema   `, schema)\n\n    // Setter\n    if (this.tables[normalizedName]) throw new Error(`Table ${name} already exists in DB '${this.name}'`);\n\n    const TableSchema = require('../database-table').default;\n\n    // Check schema\n    if (!(schema instanceof TableSchema)) throw new Error(`Invalid schema '`, schema, `'`);\n\n    // Attach db\n    schema.attach(this);\n\n    // Add to map of tables\n    $.set(this, '_options.tables.' + normalizedName, schema);\n\n    // return table instance\n    return this.tables[normalizedName];\n  }\n\n  inspect() {\n    log(`================================== DB ==================================`)\n    log(`Name,      `, this.name)\n    log(`Location,  `, this.location)\n    // log(`Options   `, this._options)\n    log(`------------------------ TABLES ------------------------`)\n    _.keys(this.tables).map(tb => this.tables[tb].inspect())\n  }\n\n  /**\n   * Create a database connection\n   *\n   * @param {*} options\n   */\n  static create(options) {\n    if (!options) throw new Error(`Options required`);\n    if (!options.name) throw new Error(`DB Name required`);\n\n    // normalize name\n    const normalizedName = options.name.toLowerCase();\n\n    // data path\n    const dbPath = path.join(PATH_DATA_ROOT, DB_PREFIX + normalizedName);\n\n    // Check exist / validity\n    if (fs.existsSync(dbPath))\n      throw new Error(`DB with same name exists '${options.name}'`);\n\n    // Write db metadata\n    fs.outputFileSync(path.join(dbPath, 'meta.json'), JSON.stringify({\n      name: options.name\n    }, null, 2));\n\n    // Create DB instance\n    return new this({\n      name: normalizedName,\n      location: dbPath\n    })\n  }\n\n  /**\n   * Open a database connection\n   *\n   * @param {String}  name\n   * @param {Object}  options\n   * @param {Boolean} options.createNotExist\n   */\n  static open(name, options) {\n    if (!name) throw new Error(`DB Name required`);\n\n    // normalize name\n    const normalizedName = name.toLowerCase();\n\n    // data path\n    const dbPath = path.join(PATH_DATA_ROOT, DB_PREFIX + normalizedName);\n\n    if (!fs.existsSync(dbPath)) {\n      // If !exist, create new\n      if (options && options.createNotExist)\n        return this.create({ name })\n\n      throw new Error(`Db not found '${name}'`)\n    }\n\n    // Find tables\n    // const globbedTables = globber.sync([path.join(dbPath + '/tb-*/meta.json')]);\n\n    // log(`globbedTables `, globbedTables);\n\n    // const TableSchema = require('../database-table').default;\n\n    // Create TableTypes\n    // const tables = _.reduce(globbedTables, (r, meta, path) => r.concat(new TableSchema(meta)), [])\n\n    // Create DB instance\n    return new this({\n      name: normalizedName,\n      location: dbPath,\n      // tables\n    })\n  }\n\n  async select(parsed) {\n\n    log(`=========== SELECT =========`);\n    log(`DB    `, this.name);\n    log(`Parsed `, parsed);\n\n    const TableSchema = require('../database-table').default\n\n    // Load Tables\n    const tables = _.values(parsed.tableAlias)\n      .reduce((r, tableName) => ({ ...r, [tableName]: this.table(tableName) }), {})\n\n    // log(`tables `, tables);\n\n    const err = _.keys(tables).find(t => !(tables[t] instanceof TableSchema))\n\n    if (err) throw new Error(`Invalid Table `, err)\n\n    const found = {};\n\n    // Find all in every table\n    await Promise.all(_.keys(tables).map(async tableName => {\n      const upperCasedKey = tableName.toUpperCase();\n      const filter        = { } //parsed.conditions[upperCasedKey] || {}\n      const projection    = _.keys(parsed.data)\n      found[tableName] = await tables[tableName].find(filter, projection);\n    }))\n\n    log(found)\n\n    // Merge\n    const all = _.values(found).reduce((r, v) => r.concat(v), []);\n    log(`all `, all);\n\n    let sameKeys = _.values(tables).map(t => _.keys(t.columns))\n    sameKeys = sameKeys.slice(1).reduce((r, v) => _.intersection(r, v), sameKeys[0]);\n    log(`SameKeys `, sameKeys);\n\n    const grouped = _.groupBy(all, v => sameKeys.map(k => v[k]).join('-'))\n    log(`grouped`, grouped);\n\n    const merged = _.values(grouped).map(pair => pair.reduce((r, v) => ({ ...r, ...v }), {}))\n    log(`Merged `, merged);\n\n    // Filter\n    const filter = _.values(parsed.conditions).reduce((r, v) => ({ ...r, ...v }), {})\n    log(`Filter `, filter)\n\n    const conformFieldFunction = (filter, key) => ({\n      [key.toLowerCase()]: v => _.eq(v, filter[key])\n    })\n\n    const comparisonFunction = _.conforms(_.keys(filter).reduce((r, key) => ({ ...r, ... conformFieldFunction(filter, key)  }), {}))\n\n    log(`comparisonFunction `, comparisonFunction);\n\n    // Filter\n    const filtered = _.filter(merged, comparisonFunction);\n\n    log(`Filtered `, filtered)\n\n    return filtered\n  }\n}\n",
+    "static": true,
+    "longname": "src/api/database/database.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 4,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/database/database.js",
+    "static": true,
+    "longname": "src/api/database/database.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/database/database.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 4,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 5,
+    "kind": "class",
+    "name": "DatabaseType",
+    "memberof": "src/api/database/database.js",
+    "static": true,
+    "longname": "src/api/database/database.js~DatabaseType",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database/database.js",
+    "importStyle": "DatabaseType",
+    "description": null,
+    "lineNumber": 13,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "interface": false
+  },
+  {
+    "__docId__": 6,
+    "kind": "constructor",
+    "name": "constructor",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 14,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "options",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 7,
+    "kind": "member",
+    "name": "_options",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#_options",
+    "access": null,
+    "description": null,
+    "lineNumber": 19,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "{\"name\": *, \"location\": *, \"tables\": *}"
+      ]
+    }
+  },
+  {
+    "__docId__": 8,
+    "kind": "get",
+    "name": "name",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 30,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 9,
+    "kind": "get",
+    "name": "location",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#location",
+    "access": null,
+    "description": null,
+    "lineNumber": 34,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 10,
+    "kind": "get",
+    "name": "tables",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#tables",
+    "access": null,
+    "description": null,
+    "lineNumber": 38,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 11,
+    "kind": "method",
+    "name": "table",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#table",
+    "access": null,
+    "description": "Get / Create a table model",
+    "lineNumber": 48,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "name",
+        "description": ""
+      },
+      {
+        "nullable": null,
+        "types": [
+          "Schema"
+        ],
+        "spread": false,
+        "optional": true,
+        "name": "schema",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 12,
+    "kind": "method",
+    "name": "inspect",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#inspect",
+    "access": null,
+    "description": null,
+    "lineNumber": 82,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": []
+  },
+  {
+    "__docId__": 13,
+    "kind": "method",
+    "name": "create",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/database/database.js~DatabaseType.create",
+    "access": null,
+    "description": "Create a database connection",
+    "lineNumber": 96,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "options",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 14,
+    "kind": "method",
+    "name": "open",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/database/database.js~DatabaseType.open",
+    "access": null,
+    "description": "Open a database connection",
+    "lineNumber": 129,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "name",
+        "description": ""
+      },
+      {
+        "nullable": null,
+        "types": [
+          "Object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "options",
+        "description": ""
+      },
+      {
+        "nullable": null,
+        "types": [
+          "Boolean"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "options.createNotExist",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 15,
+    "kind": "method",
+    "name": "select",
+    "memberof": "src/api/database/database.js~DatabaseType",
+    "generator": false,
+    "async": true,
+    "static": false,
+    "longname": "src/api/database/database.js~DatabaseType#select",
+    "access": null,
+    "description": null,
+    "lineNumber": 164,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "parsed",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 16,
+    "kind": "file",
+    "name": "src/api/database/index.js",
+    "content": "'use strict';\n\nexport default from './database'\n",
+    "static": true,
+    "longname": "src/api/database/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 17,
+    "kind": "file",
+    "name": "src/api/database-table/database-table.constants.js",
+    "content": "\n'use strict';\n\nexport const TABLE_PREFIX = 'tb-'\n",
+    "static": true,
+    "longname": "src/api/database-table/database-table.constants.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 18,
+    "kind": "variable",
+    "name": "TABLE_PREFIX",
+    "memberof": "src/api/database-table/database-table.constants.js",
+    "static": true,
+    "longname": "src/api/database-table/database-table.constants.js~TABLE_PREFIX",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/database-table.constants.js",
+    "importStyle": "{TABLE_PREFIX}",
+    "description": null,
+    "lineNumber": 4,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 19,
+    "kind": "file",
+    "name": "src/api/database-table/database-table.js",
+    "content": "\n'use strict';\n\nconst log = require('debug')('database-table');\n\nimport _ from 'lodash';\nimport $ from 'object-path';\nimport fs from 'fs-extra';\nimport path from 'path';\nimport { TABLE_PREFIX } from './database-table.constants';\nimport FieldDefinition from './field-definition';\nexport default class TableSchema {\n  constructor(options) {\n    if (!options) throw new Error(`Options required`);\n    if (!options.name) throw new Error(`Name required`);\n    if (!options.columns) throw new Error(`Schema required`);\n\n    this._options = {\n      name:     options.name,\n      columns:   { },\n    }\n\n    // Add columns\n    if (_.isPlainObject(options.columns))\n      _.keys(options.columns).map(s => this.column(s, options.columns[s]));\n\n  }\n\n  get name() {\n    return $.get(this, '_options.name');\n  }\n\n  get location() {\n    return $.get(this, '_options.location');\n  }\n\n  get columns() {\n    return $.get(this, '_options.columns');\n  }\n\n  inspect() {\n\n    log(`Name,      `, this.name)\n    log(`Location,  `, this.location)\n    log(`Options   `, this._options)\n    log(`+++++++++++++++++ COLUMNS +++++++++++++++++`)\n\n    _.keys(this.columns).map(col => this.columns[col].inspect())\n  }\n\n  /**\n   *\n   * @param {string} name\n   * @param {object} [definition]\n   */\n  column(name, definition) {\n    if (!name) throw new Error(`Column name required`);\n\n    const normalizedName = name.toLowerCase();\n\n    // Getter\n    if (!definition) {\n      // log(`============ GET COLUMN ============`)\n      // log(`Name   `, name)\n      return $.get(this, '_options.columns.' + normalizedName);\n    }\n\n    // log(`============ SET COLUMN ============`)\n    // log(`Name       `, name)\n    // log(`Definition `, definition)\n\n    // Setter\n    if (this.columns[normalizedName]) throw new Error(`Column ${name} already exists in Table '${this.name}'`);\n\n    // create definition\n    const fieldDef = new FieldDefinition(name, definition);\n\n    // Add to map of tables\n    $.set(this, '_options.columns.' + normalizedName, fieldDef);\n\n    // return table instance\n    return this.columns[normalizedName];\n  }\n\n  attach(database) {\n    if (this._options.attached) throw new Error('Already attached');\n\n    if (!database) throw new Error(`DB instance required`);\n\n    const Database = require('../database').default;\n\n    if (!(database instanceof Database)) throw new Error(`Invalid DB instance '`, database,`'`);\n\n    const normalizedName = this.name.toLowerCase();\n\n    const dbPath = path.join(database.location, TABLE_PREFIX + normalizedName);\n\n    $.set(this, '_options.location', dbPath)\n\n    // log(`Attaching `, this.name, `to DB`, database.name)\n    // log(`dbPath @ `, dbPath)\n\n    // Write table metadata\n    fs.outputFileSync(path.join(dbPath, 'meta.json'), JSON.stringify({\n      database: database.name,\n      name: this.name,\n      schema: this.columns\n    }, null, 2));\n  }\n\n  validate(mappings) {\n    // Transform values\n    return _.reduce(mappings, (res, val, key) => {\n      const normalizedKey = key.toLowerCase();\n      // Not a registered column\n      if (!this.columns[normalizedKey]) return;\n\n      // Run setters\n      const trans = this.columns[normalizedKey].transform(val);\n\n      // Run validators\n      const error = this.columns[normalizedKey].validate(val);\n      if (error) throw new Error(error);\n\n      return {\n        ... res,\n        [normalizedKey]: trans\n      }\n    }, {})\n  }\n\n  static mapParsed(parsed) {\n    return parsed.formalValues.reduce((r, col, ind) => ({\n      ...r,\n      [col]: parsed.actualValues[ind]\n    }), {})\n  }\n\n  async insert(mappings) {\n\n    // Retrieve dataset to write into\n    const dataSetPath = path.join(this.location, 'ds-1.json');\n\n    log(`=========== INSERT =========`);\n    log(`Table    `, this.name);\n    log(`Mappings `, mappings);\n    log(`WritePath `, dataSetPath);\n\n    // Transform and validate\n    const toWrite = this.validate(mappings);\n\n    log(`ToWrite   `, toWrite);\n\n    // Load dataset\n    const dataSet = fs.existsSync(dataSetPath)\n      ? fs.readJsonSync(dataSetPath)\n      : []\n\n    log(`Start DataSet `, dataSet)\n\n    // Add new item\n    dataSet.push(toWrite);\n\n    log(`End DataSet `, dataSet)\n\n    // Save dataset\n    fs.outputJsonSync(dataSetPath, dataSet)\n  }\n\n  async find(filter, projection) {\n\n    // Retrieve dataset to read into\n    const dataSetPath = path.join(this.location, 'ds-1.json');\n\n    // clean filter\n    filter = _.pickBy(filter, v => v !== undefined)\n\n    log(`=========== FIND =========`);\n    log(`Table    `, this.name);\n    log(`Filter   `, filter);\n    log(`Projection `, dataSetPath);\n\n    // Load dataset\n    const dataSet = fs.existsSync(dataSetPath)\n      ? fs.readJsonSync(dataSetPath)\n      : []\n\n    const conformFieldFunction = (filter, key) => ({\n      [key.toLowerCase()]: v => _.eq(v, filter[key])\n    })\n\n    const comparisonFunction = _.conforms(_.keys(filter).reduce((r, key) => ({ ...r, ... conformFieldFunction(filter, key)  }), {}))\n\n    log(`comparisonFunction `, comparisonFunction);\n\n    // Filter\n    const filtered = _.filter(dataSet, comparisonFunction);\n\n    // Project\n    return _.isEmpty(projection)\n      ? filtered\n      : filtered.map(i => _.pick(i, projection.map(k => k.toLowerCase())))\n  }\n}\n",
+    "static": true,
+    "longname": "src/api/database-table/database-table.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 20,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/database-table/database-table.js",
+    "static": true,
+    "longname": "src/api/database-table/database-table.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/database-table/database-table.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 4,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 21,
+    "kind": "class",
+    "name": "TableSchema",
+    "memberof": "src/api/database-table/database-table.js",
+    "static": true,
+    "longname": "src/api/database-table/database-table.js~TableSchema",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/database-table.js",
+    "importStyle": "TableSchema",
+    "description": null,
+    "lineNumber": 12,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "interface": false
+  },
+  {
+    "__docId__": 22,
+    "kind": "constructor",
+    "name": "constructor",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 13,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "options",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 23,
+    "kind": "member",
+    "name": "_options",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#_options",
+    "access": null,
+    "description": null,
+    "lineNumber": 18,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "{\"name\": *, \"columns\": *}"
+      ]
+    }
+  },
+  {
+    "__docId__": 24,
+    "kind": "get",
+    "name": "name",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 29,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 25,
+    "kind": "get",
+    "name": "location",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#location",
+    "access": null,
+    "description": null,
+    "lineNumber": 33,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 26,
+    "kind": "get",
+    "name": "columns",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#columns",
+    "access": null,
+    "description": null,
+    "lineNumber": 37,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 27,
+    "kind": "method",
+    "name": "inspect",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#inspect",
+    "access": null,
+    "description": null,
+    "lineNumber": 41,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": []
+  },
+  {
+    "__docId__": 28,
+    "kind": "method",
+    "name": "column",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#column",
+    "access": null,
+    "description": "",
+    "lineNumber": 56,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "string"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "name",
+        "description": ""
+      },
+      {
+        "nullable": null,
+        "types": [
+          "object"
+        ],
+        "spread": false,
+        "optional": true,
+        "name": "definition",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 29,
+    "kind": "method",
+    "name": "attach",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#attach",
+    "access": null,
+    "description": null,
+    "lineNumber": 85,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "database",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 30,
+    "kind": "method",
+    "name": "validate",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#validate",
+    "access": null,
+    "description": null,
+    "lineNumber": 111,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "mappings",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 31,
+    "kind": "method",
+    "name": "mapParsed",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/database-table/database-table.js~TableSchema.mapParsed",
+    "access": null,
+    "description": null,
+    "lineNumber": 132,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "parsed",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 32,
+    "kind": "method",
+    "name": "insert",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": true,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#insert",
+    "access": null,
+    "description": null,
+    "lineNumber": 139,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "mappings",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 33,
+    "kind": "method",
+    "name": "find",
+    "memberof": "src/api/database-table/database-table.js~TableSchema",
+    "generator": false,
+    "async": true,
+    "static": false,
+    "longname": "src/api/database-table/database-table.js~TableSchema#find",
+    "access": null,
+    "description": null,
+    "lineNumber": 170,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "filter",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "projection",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 34,
+    "kind": "file",
+    "name": "src/api/database-table/field-definition.js",
+    "content": "\n'use strict';\n\nconst log = require('debug')('database-field-definition');\n\nimport _ from 'lodash';\nimport $ from 'object-path';\n\nexport const TYPE_VARCHAR = 'VARCHAR';\nexport const TYPE_INTEGER = 'INTEGER';\nexport const TYPE_TIME = 'TIME';\nexport const TYPE_DATE = 'DATE';\n\nexport default class FieldDefinition {\n  constructor(path, options) {\n    if (!path) throw new Error(`Path required`);\n    if (!options) throw new Error(`Options required`);\n\n    this._options = {\n      path,\n      type: options.type,\n      validators: _.compact(_.isArray(options.validate) ? options.validate : [ options.validate ]),\n      setters: _.compact([ options.set ])\n    }\n  }\n\n  static validatorsFor(path, options) {\n    if (!options) return []\n\n    const validators = Array.isArray(options.validate)\n      ? options.validate\n      : _.compact([ options.validate ])\n\n    // Required validators\n    if (options.required) {\n      validators.push({\n        validator(val) {\n          return !_.isNil(val)\n        },\n        message: `${path} required`\n      })\n    }\n\n    // Minimum validators\n    if (options.min) {\n      validators.push({\n        validator(val) {\n          switch(options.type.toUpperCase())  {\n            case TYPE_VARCHAR: return val.length >= options.min;\n            case TYPE_INTEGER: return val >= options.min;\n            default: true\n          }\n        },\n        message: `Minimin length of ${options.min}`\n      })\n    }\n\n    // Max validators\n    if (options.max) {\n      validators.push({\n        validator(val) {\n          switch(options.type.toUpperCase())  {\n            case TYPE_VARCHAR: return val.length <= options.min;\n            case TYPE_INTEGER: return val <= options.min;\n            default: true\n          }\n        },\n        message: `Maximum length of ${options.max}`\n      })\n    }\n\n    // Enum validators\n    if (options.enum) {\n      const normalizedEnum = options.enum.map(i => i.toLowerCase());\n      validators.push({\n        validator(val) {\n          switch(options.type.toUpperCase())  {\n            case TYPE_VARCHAR: return normalizedEnum.indexOf(val.toLowerCase());\n            default: true\n          }\n        },\n        message: `Can only have ff values: ${options.enum.join(', ')}`\n      })\n    }\n  }\n\n  static settersFor(options) {\n    if (!options) return []\n\n    const setters = [];\n\n    switch(options.type) {\n      case TYPE_VARCHAR:\n        setters.push(function(val) {\n          return _.toString(val)\n        })\n        break;\n\n      case TYPE_INTEGER:\n        setters.push(function(val) {\n          return _.toInteger(val)\n        })\n        break;\n\n      default:\n        throw new Error(`Invalid type '`, options.type, `'`)\n    }\n\n    return setters;\n  }\n\n  get setters() {\n    return $.get(this, '_options.setters');\n  }\n\n  get validators() {\n    return $.get(this, '_options.validators');\n  }\n\n  get path() {\n    return $.get(this, '_options.path');\n  }\n\n  get type() {\n    return $.get(this, '_options.type');\n  }\n\n  inspect() {\n    log(`-------------------- PATH --------------------`)\n    log(`Name,      `, this.path)\n    log(`Type,  `, this.type)\n    log(`Setters `, this.setters);\n    log(`Validators `, this.validators);\n  }\n\n  /**\n   * Run setters on value\n   * @param {*} value\n   */\n  transform(value) {\n    return _.reverse(this.setters).reduce((res, fn) => fn(res), value)\n  }\n\n  /**\n   * Run validators agains value\n   * @param {*} value\n   */\n  validate(value) {\n    // Tripped Validator\n    const validator = _.reverse(this.validators).find(val => !val.fn(value));\n\n    return validator && (validator.message || 'Validation Error').replace('{VALUE}', value)\n  }\n}\n",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 35,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 4,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 36,
+    "kind": "variable",
+    "name": "TYPE_VARCHAR",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~TYPE_VARCHAR",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": "{TYPE_VARCHAR}",
+    "description": null,
+    "lineNumber": 9,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 37,
+    "kind": "variable",
+    "name": "TYPE_INTEGER",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~TYPE_INTEGER",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": "{TYPE_INTEGER}",
+    "description": null,
+    "lineNumber": 10,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 38,
+    "kind": "variable",
+    "name": "TYPE_TIME",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~TYPE_TIME",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": "{TYPE_TIME}",
+    "description": null,
+    "lineNumber": 11,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 39,
+    "kind": "variable",
+    "name": "TYPE_DATE",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~TYPE_DATE",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": "{TYPE_DATE}",
+    "description": null,
+    "lineNumber": 12,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "__docId__": 40,
+    "kind": "class",
+    "name": "FieldDefinition",
+    "memberof": "src/api/database-table/field-definition.js",
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/database-table/field-definition.js",
+    "importStyle": "FieldDefinition",
+    "description": null,
+    "lineNumber": 14,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "interface": false
+  },
+  {
+    "__docId__": 41,
+    "kind": "constructor",
+    "name": "constructor",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 15,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "path",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "options",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 42,
+    "kind": "member",
+    "name": "_options",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#_options",
+    "access": null,
+    "description": null,
+    "lineNumber": 19,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "{\"path\": *, \"type\": *, \"validators\": *, \"setters\": *}"
+      ]
+    }
+  },
+  {
+    "__docId__": 43,
+    "kind": "method",
+    "name": "validatorsFor",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition.validatorsFor",
+    "access": null,
+    "description": null,
+    "lineNumber": 27,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "path",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "options",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 44,
+    "kind": "method",
+    "name": "settersFor",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition.settersFor",
+    "access": null,
+    "description": null,
+    "lineNumber": 87,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "options",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 45,
+    "kind": "get",
+    "name": "setters",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#setters",
+    "access": null,
+    "description": null,
+    "lineNumber": 112,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 46,
+    "kind": "get",
+    "name": "validators",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#validators",
+    "access": null,
+    "description": null,
+    "lineNumber": 116,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 47,
+    "kind": "get",
+    "name": "path",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#path",
+    "access": null,
+    "description": null,
+    "lineNumber": 120,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 48,
+    "kind": "get",
+    "name": "type",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 124,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 49,
+    "kind": "method",
+    "name": "inspect",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#inspect",
+    "access": null,
+    "description": null,
+    "lineNumber": 128,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": []
+  },
+  {
+    "__docId__": 50,
+    "kind": "method",
+    "name": "transform",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#transform",
+    "access": null,
+    "description": "Run setters on value",
+    "lineNumber": 140,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "value",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 51,
+    "kind": "method",
+    "name": "validate",
+    "memberof": "src/api/database-table/field-definition.js~FieldDefinition",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/database-table/field-definition.js~FieldDefinition#validate",
+    "access": null,
+    "description": "Run validators agains value",
+    "lineNumber": 148,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "value",
+        "description": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 52,
+    "kind": "file",
+    "name": "src/api/database-table/index.js",
+    "content": "\n'use strict';\n\nexport default from './database-table'\n\nexport * from './field-definition';\n",
+    "static": true,
+    "longname": "src/api/database-table/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 53,
+    "kind": "file",
+    "name": "src/api/default-models/model-course-offering.js",
+    "content": "\n'use strict';\n\nimport Table, { TYPE_INTEGER, TYPE_VARCHAR, TYPE_TIME } from '../database-table';\n\nexport default new Table({\n  name: 'CourseOffering',\n  columns: {\n    Semester:               {\n                              type: TYPE_VARCHAR,\n                              enum: ['1st', '2nd', 'summer']\n                            },\n    AcadYear:               {\n                              type: TYPE_VARCHAR,\n                              max: 50,\n                            },\n    CNo:                    {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    Section:                {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    Time:                   {\n                              type: TYPE_TIME\n                            },\n    MaxStud:                {\n                              type: TYPE_INTEGER\n                            },\n  }\n})\n",
+    "static": true,
+    "longname": "src/api/default-models/model-course-offering.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 54,
+    "kind": "file",
+    "name": "src/api/default-models/model-course.js",
+    "content": "\n'use strict';\n\nimport Table, { TYPE_INTEGER, TYPE_VARCHAR } from '../database-table';\n\nexport default new Table({\n  name: 'Course',\n  columns: {\n    CNo:                    {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    CTitle:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    CDesc:                  {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    NoOfUnits:              {\n                              type: TYPE_INTEGER\n                            },\n    HasLab:                 {\n                              type: TYPE_INTEGER\n                            },\n    SemOffered:             {\n                              type: TYPE_VARCHAR,\n                              enum: ['1st', '2nd', 'summer']\n                            }\n  }\n})\n",
+    "static": true,
+    "longname": "src/api/default-models/model-course.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 55,
+    "kind": "file",
+    "name": "src/api/default-models/model-db.js",
+    "content": "\n'use strict';\n\nimport Database from '../database';\n\nimport Course from './model-course'\nimport CourseOffering from './model-course-offering';\nimport Student from './model-student';\nimport StudentCourse from './model-student-course';\nimport StudentHistory from './model-student-history';\n\n// Connect to default DB\nexport const db = Database.open('default', { createNotExist: true });\n\n// Add table schemas\ndb.table('Course', Course);\ndb.table('CourseOffering', CourseOffering);\ndb.table('Student', Student);\ndb.table('StudentCourse', StudentCourse);\ndb.table('StudentHistory', StudentHistory);\n\n// inspect connection\n// db.inspect()\n\nexport default db;\n",
+    "static": true,
+    "longname": "src/api/default-models/model-db.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 56,
+    "kind": "variable",
+    "name": "db",
+    "memberof": "src/api/default-models/model-db.js",
+    "static": true,
+    "longname": "src/api/default-models/model-db.js~db",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/default-models/model-db.js",
+    "importStyle": "{db}",
+    "description": null,
+    "lineNumber": 13,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 57,
+    "kind": "file",
+    "name": "src/api/default-models/model-student-course.js",
+    "content": "\n'use strict';\n\nimport Table, { TYPE_INTEGER, TYPE_VARCHAR } from '../database-table';\n\nexport default new Table({\n  name: 'StudentCourse',\n  columns: {\n    Semester:               {\n                              type: TYPE_VARCHAR,\n                              enum: ['1st', '2nd', 'summer']\n                            },\n    CNo:                    {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    StudNo:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    AcadYear:               {\n                              type: TYPE_VARCHAR,\n                              max: 50,\n                            },\n  }\n})\n",
+    "static": true,
+    "longname": "src/api/default-models/model-student-course.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 58,
+    "kind": "file",
+    "name": "src/api/default-models/model-student-history.js",
+    "content": "\n'use strict';\n\nimport Table, { TYPE_INTEGER, TYPE_VARCHAR, TYPE_DATE } from '../database-table';\n\nexport default new Table({\n  name: 'StudentHistory',\n  columns: {\n    StudNo:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    Description:            {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    DateFiled:              {\n                              type: TYPE_DATE\n                            },\n    Action:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50,\n                            },\n    DateResolved:           {\n                              type: TYPE_DATE\n                            },\n  }\n})\n",
+    "static": true,
+    "longname": "src/api/default-models/model-student-history.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 59,
+    "kind": "file",
+    "name": "src/api/default-models/model-student.js",
+    "content": "\n'use strict';\n\nimport Table, { TYPE_INTEGER, TYPE_VARCHAR, TYPE_DATE } from '../database-table';\n\nexport default new Table({\n  name: 'Student',\n  columns: {\n    StudNo:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    StudName:               {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    Birthday:               {\n                              type: TYPE_DATE\n                            },\n    Degree:                 {\n                              type: TYPE_VARCHAR,\n                              max: 50,\n                            },\n    Major:                  {\n                              type: TYPE_VARCHAR,\n                              max: 50\n                            },\n    UnitsEarned:            {\n                              type: TYPE_INTEGER\n                            },\n  }\n})\n",
+    "static": true,
+    "longname": "src/api/default-models/model-student.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 60,
+    "kind": "file",
+    "name": "src/api/manager/index.js",
+    "content": "'use strict';\n\n// Object\nexport default from './manager';\n\n// Routes\nexport routes from './manager.routes';\n",
+    "static": true,
+    "longname": "src/api/manager/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 61,
+    "kind": "file",
+    "name": "src/api/manager/manager.js",
+    "content": "'use strict';\n\nconst log = require('debug')('manager');\n\nimport Parser from '../parser';\nimport db from '../default-models/model-db';\nexport default class Manager {\n  constructor(props) {\n    // load databases from file and cache here\n  }\n\n  /**\n   * Run an sql command\n   * @returns {Promise<object>}\n   * @throws {*}\n   */\n  async run(sql) {\n\n    log(`======== RUNNING ========`)\n    log(`DB   `, 'default')\n    log(`Sql  `, sql)\n\n    // generate query tree\n    const parsed = Parser.parse(sql);\n    // const parsed = {\n    //   type: 'insert',\n    //   table: 'COURSE',\n    //   formalValues: [\n    //     'CNo',\n    //     'CTitle',\n    //     'CDesc',\n    //     'NoOfUnits',\n    //     'HasLab',\n    //     'SemOffered'\n    //   ],\n    //   actualValues: [\n    //     'CMSC 191',\n    //     'Special Topics',\n    //     'Big Data Management and Trends',\n    //     '3.0',\n    //     '1',\n    //     '1st'\n    //   ]\n    // }\n\n    // const parsed = {\n    //   type: 'select',\n    //   data: {\n    //     CNo: 'COURSE',\n    //     CTitle: 'COURSE',\n    //     AcadYear: 'COURSEOFFERING'\n    //   },\n    //   columnAlias: {\n    //     CNo: 'a',\n    //     CTitle: 'a',\n    //     AcadYear: 'b'\n    //   },\n    //   tableAlias: {\n    //     a: 'COURSE',\n    //     b: 'COURSEOFFERING'\n    //   },\n    //   conditions: {\n    //     COURSE: {\n    //       CNo: 'CMSC 191'\n    //     }\n    //   }\n    // }\n\n    log(`parsed   `, parsed)\n\n    switch(parsed.type) {\n      case 'insert':\n        const Table = db.table(parsed.table);\n        if (!Table) throw new Error(`Invalid table '${parsed.table}'`)\n        const mappedInsert = Table.mapParsed(parsed);\n        return Table.insert(mappedInsert)\n\n      case 'select':\n        return db.select(parsed)\n    }\n  }\n}\n",
+    "static": true,
+    "longname": "src/api/manager/manager.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 62,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/manager/manager.js",
+    "static": true,
+    "longname": "src/api/manager/manager.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/manager/manager.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 3,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 63,
+    "kind": "class",
+    "name": "Manager",
+    "memberof": "src/api/manager/manager.js",
+    "static": true,
+    "longname": "src/api/manager/manager.js~Manager",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/manager/manager.js",
+    "importStyle": "Manager",
+    "description": null,
+    "lineNumber": 7,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "interface": false
+  },
+  {
+    "__docId__": 64,
+    "kind": "constructor",
+    "name": "constructor",
+    "memberof": "src/api/manager/manager.js~Manager",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/api/manager/manager.js~Manager#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "props",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 65,
+    "kind": "method",
+    "name": "run",
+    "memberof": "src/api/manager/manager.js~Manager",
+    "generator": false,
+    "async": true,
+    "static": false,
+    "longname": "src/api/manager/manager.js~Manager#run",
+    "access": null,
+    "description": "Run an sql command",
+    "lineNumber": 17,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{Promise<object>}"
+      }
+    ],
+    "params": [
+      {
+        "name": "sql",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "Promise<object>"
+      ],
+      "spread": false,
+      "description": ""
+    },
+    "throws": [
+      {
+        "types": [
+          "*"
+        ],
+        "description": ""
+      }
+    ]
+  },
+  {
+    "__docId__": 66,
+    "kind": "file",
+    "name": "src/api/manager/manager.routes.js",
+    "content": "'use strict';\n\nconst log = require('debug')('manager.routes');\n\nimport Manager from './manager';\nimport express from 'express';\n\nconst router = express.Router();\nconst dbmanager = new Manager();\n\n/**\n * @api {post} /api/manager/run Run an sql query\n * @apName PostRun\n * @apiGroup Manager\n *\n * @apiParam (Account) {string}           sql - sql query\n * @apiParamExample {json} Request-Example:\n *     {\n *        \"sql\": \"SELECT * from COURSE\"\n *     }\n *\n * @apiError SyntaxError syntax error\n * @apiErrorExample Error-Response:\n *     HTTP/1.1 301 Syntax Error\n *     {\n *       \"error\": \"Syntax Error near 'SELECT'\"\n *     }\n */\nrouter.post('/run', async (req, res) => {\n  try {\n    // run sql command to the db manager\n    const result = await dbmanager.run(req.body.sql);\n\n    // log result\n    log(`result `, result);\n\n    // send result\n    res.status(200).json({ result });\n\n  } catch (err) {\n    // log error\n    log(`run err `, err);\n\n    // send error\n    res.status(200).json({ error: err.message });\n  }\n});\n\nexport default router;\n",
+    "static": true,
+    "longname": "src/api/manager/manager.routes.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 67,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/manager/manager.routes.js",
+    "static": true,
+    "longname": "src/api/manager/manager.routes.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/manager/manager.routes.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 3,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 68,
+    "kind": "variable",
+    "name": "dbmanager",
+    "memberof": "src/api/manager/manager.routes.js",
+    "static": true,
+    "longname": "src/api/manager/manager.routes.js~dbmanager",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/manager/manager.routes.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 9,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "src/api/manager/manager.js~Manager"
+      ]
+    }
+  },
+  {
+    "__docId__": 69,
+    "kind": "variable",
+    "name": "router",
+    "memberof": "src/api/manager/manager.routes.js",
+    "static": true,
+    "longname": "src/api/manager/manager.routes.js~router",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/manager/manager.routes.js",
+    "importStyle": "router",
+    "description": null,
+    "lineNumber": 8,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 70,
+    "kind": "file",
+    "name": "src/api/parser/index.js",
+    "content": "'use strict';\n\nexport default from './parser'\n",
+    "static": true,
+    "longname": "src/api/parser/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 71,
+    "kind": "file",
+    "name": "src/api/parser/parser.js",
+    "content": "'use strict';\n\nconst log = require('debug')('parser')\n\nimport _ from 'lodash';\n\n// Tables\nimport COURSE         from './../../tables/COURSE';\nimport COURSEOFFERING from './../../tables/COURSEOFFERING';\nimport STUDCOURSE     from './../../tables/STUDCOURSE';\nimport STUDENT        from './../../tables/STUDENT';\nimport STUDENTHISTORY from './../../tables/STUDENTHISTORY';\n\n// Enums\n// import SemOffered     from './../../enums/SemOffered';\n// import Semester       from './../../enums/Semester';\n\n\nexport default class Parser {\n  static get regex() {\n    return {\n      SELECT_STATEMENT: /^\\s*SELECT\\s+/i,\n      INSERT_STATEMENT: /^\\s*INSERT\\s+INTO\\s+/i,\n      SELECT: {\n        COLUMNS: /(\\*\\s+)|((\\w+\\s*)(,\\s*\\w+\\s*)*)/,\n        FROM: /^FROM\\s+/i,\n        TABLES: /(\\w+\\s*)(,\\s*\\w+\\s*)*/,\n        WHERE: /^WHERE\\s+\\w+\\s*=\\s*((\\w+)|(\\'.*\\'))\\s*;/i\n      },\n      INSERT: {\n        TABLE: /\\w+\\s+/,\n        FORMAL_VALUES: /\\(\\s*(\\w+\\s*)(,\\s*\\w+)*\\s*\\)\\s+/,\n        VALUES: /^VALUES\\s+/i,\n        ACTUAL_VALUES: /\\(\\s*((\\'.*\\')|(?!,.+))\\s*(,\\s*(\\'.*\\')|(?!,.+))*\\s*\\)\\s*;$/\n      }\n    };\n  }\n\n  static get tables() {\n    return {\n      'COURSE': COURSE,\n      'COURSEOFFERING': COURSEOFFERING,\n      'STUDCOURSE': STUDCOURSE,\n      'STUDENT': STUDENT,\n      'STUDENTHISTORY': STUDENTHISTORY\n    };\n  }\n\n  static get columns() {\n    let columns = [];\n\n    for (let table of Object.keys(Parser.tables)) {\n      for (let column of Parser.tables[table]['columns']) {\n        columns.push(column['name']);\n      }\n    }\n\n    return columns;\n  }\n\n  /**\n   * Parse the SELECT statement and check for syntax errors\n   * @param {String} sql - sql command to parse\n   * @returns {Object} res - Object that contains the important results of the parser\n   * @throws {*}\n   */\n  static processSELECT(sql, db) {\n    /**\n     * res object will contain these keys:\n     *\n     * data - Object that contains key-value pairs of column-table\n     * conditions - the conditions in the WHERE statement (if there is)\n     */\n    let res = {\n      command: 'select',\n      data: {},\n      conditions: {}\n    };\n\n    // Removed processed regex\n    sql = sql.replace(Parser.regex.SELECT_STATEMENT, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.SELECT.COLUMNS)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Parse the columns\n    let requestedColumns = sql.match(Parser.regex.SELECT.COLUMNS)[0].split(',');\n    requestedColumns = requestedColumns.map(e => e.trim());\n\n    // Removed processed regex\n    sql = sql.replace(Parser.regex.SELECT.COLUMNS, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.SELECT.FROM)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Removed processed regex\n    sql = sql.replace(Parser.regex.SELECT.FROM, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.SELECT.TABLES)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Parse the tables\n    let requestedTables = sql.match(Parser.regex.SELECT.TABLES)[0].split(',');\n    requestedTables = requestedTables.map(e => e.trim());\n\n    // If \"*\" is selected, add all the columns of all the tables to res.data\n    if (requestedColumns[0] === '*') {\n      requestedTables.forEach(table => {\n        Parser.tables[table]['columns'].forEach(col => {\n          res.data[col.name] = table;\n        });\n      });\n    }\n    else {\n      for (let i = 0; i < requestedColumns.length; i++) {\n        let col = requestedColumns[i];\n\n        let count = 0;\n        requestedTables.forEach(table => {\n          Parser.tables[table]['columns'].forEach(e => {\n            if (e['name'] == col)\n              res.data[col] = table;\n          })\n          count += Parser.tables[table]['columns'].filter(e => e['name'] === col).length;\n        });\n\n        // Checks for ambiguous columns (if no aliasing)\n        if (count > 1) {\n          throw new Error(`Column '${col}' in field list is ambiguous`);\n        }\n      }\n    }\n\n    // Removed processed regex\n    sql = sql.replace(Parser.regex.SELECT.TABLES, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.SELECT.WHERE)) {\n      log(sql)\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Parse conditions\n    let conditions = sql.match(Parser.regex.SELECT.WHERE)[0];\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.SELECT.WHERE)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    let cond = sql.replace(/^WHERE\\s+/, '');\n    let column = cond.split('=')[0].trim();\n    res.conditions[requestedTables[0]] = {};\n    let temp = cond.split('=')[1].trim();\n    res.conditions[requestedTables[0]][column] = temp.substring(0, temp.length-1);\n\n    return res;\n  }\n\n  /**\n   * Parse the INSERT statement and check for syntax errors\n   * @param {String} sql - sql command to parse\n   * @returns {Object} res - Object that contains the important results of the parser\n   * @throws {*}\n   */\n  static processINSERT(sql, db) {\n    /**\n     * res object will contain these keys:\n     *\n     * table - the table where the row will be inserted\n     * formalValues - the columns of the table that the data will be inserted\n     * actualValues - the actual values that corresponds to each columns in the formalValues\n     */\n    let res = {\n      command: 'insert'\n    };\n\n    // Remove processed regex\n    sql = sql.replace(Parser.regex.INSERT_STATEMENT, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.INSERT.TABLE)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Parse the table\n    res['table'] = sql.match(Parser.regex.INSERT.TABLE)[0].trim();\n\n    // Remove processed regex\n    sql = sql.replace(Parser.regex.INSERT.TABLE, '');\n\n    // Parse the formal values\n    res['formalValues'] = sql.match(Parser.regex.INSERT.FORMAL_VALUES)[0].trim().replace(/\\(|\\)/g, '');\n    res['formalValues'] = res['formalValues'].split(',').map(e => e.trim());\n\n    // Remove processed regex\n    sql = sql.replace(Parser.regex.INSERT.FORMAL_VALUES, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.INSERT.VALUES)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Remove processed regex\n    sql = sql.replace(Parser.regex.INSERT.VALUES, '');\n\n    // Check for syntax error\n    if (!sql.match(Parser.regex.INSERT.ACTUAL_VALUES)) {\n      throw new Error(`Syntax error near '${sql}'`);\n    }\n\n    // Parse the actual values\n    res['actualValues'] = sql.match(Parser.regex.INSERT.ACTUAL_VALUES)[0].trim().replace(/\\(|\\)|;/g, '');\n    res['actualValues'] = res['actualValues'].split(',').map(e => e.trim());\n\n    // Remove processed regex\n    sql = sql.replace(Parser.regex.INSERT.ACTUAL_VALUES, '');\n\n    if (res['formalValues'].length !== res['actualValues'].length) {\n      throw new Error(`Length of formal values and actual values are not the same. Expected ${res['formalValues'].length}, got ${res['actualValues'].length}.`);\n    }\n\n    return res;\n  }\n\n  /**\n   * Check grammar, and other checkables, build a query tree\n   * @param {String} sql - sql command to parse\n   * @returns {*}\n   * @throws {*}\n   */\n  static parse(sql, db) {\n    // Check if matched with SELECT statement\n    if (sql.match(Parser.regex.SELECT_STATEMENT)) {\n      return Parser.processSELECT(sql, db);\n    }\n\n    // Check if matched with INSERT statement\n    if (sql.match(Parser.regex.INSERT_STATEMENT)) {\n      return Parser.processINSERT(sql, db);\n    }\n\n    throw new Error('Syntax Error. Please use either SELECT or INSERT statements only.')\n  }\n}\n",
+    "static": true,
+    "longname": "src/api/parser/parser.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 72,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/api/parser/parser.js",
+    "static": true,
+    "longname": "src/api/parser/parser.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/api/parser/parser.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 3,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 73,
+    "kind": "class",
+    "name": "Parser",
+    "memberof": "src/api/parser/parser.js",
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/api/parser/parser.js",
+    "importStyle": "Parser",
+    "description": null,
+    "lineNumber": 19,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "interface": false
+  },
+  {
+    "__docId__": 74,
+    "kind": "get",
+    "name": "regex",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.regex",
+    "access": null,
+    "description": null,
+    "lineNumber": 20,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "{\"SELECT_STATEMENT\": *, \"INSERT_STATEMENT\": *, \"SELECT\": *, \"INSERT\": *}"
+      ]
+    }
+  },
+  {
+    "__docId__": 75,
+    "kind": "get",
+    "name": "tables",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.tables",
+    "access": null,
+    "description": null,
+    "lineNumber": 39,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "{\"COURSE\": *, \"COURSEOFFERING\": *, \"STUDCOURSE\": *, \"STUDENT\": *, \"STUDENTHISTORY\": *}"
+      ]
+    }
+  },
+  {
+    "__docId__": 76,
+    "kind": "get",
+    "name": "columns",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.columns",
+    "access": null,
+    "description": null,
+    "lineNumber": 49,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 77,
+    "kind": "method",
+    "name": "processSELECT",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.processSELECT",
+    "access": null,
+    "description": "Parse the SELECT statement and check for syntax errors",
+    "lineNumber": 67,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{Object} res - Object that contains the important results of the parser"
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "sql",
+        "description": "sql command to parse"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "Object"
+      ],
+      "spread": false,
+      "description": "res - Object that contains the important results of the parser"
+    },
+    "throws": [
+      {
+        "types": [
+          "*"
+        ],
+        "description": ""
+      }
+    ]
+  },
+  {
+    "__docId__": 78,
+    "kind": "method",
+    "name": "processINSERT",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.processINSERT",
+    "access": null,
+    "description": "Parse the INSERT statement and check for syntax errors",
+    "lineNumber": 172,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{Object} res - Object that contains the important results of the parser"
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "sql",
+        "description": "sql command to parse"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "Object"
+      ],
+      "spread": false,
+      "description": "res - Object that contains the important results of the parser"
+    },
+    "throws": [
+      {
+        "types": [
+          "*"
+        ],
+        "description": ""
+      }
+    ]
+  },
+  {
+    "__docId__": 79,
+    "kind": "method",
+    "name": "parse",
+    "memberof": "src/api/parser/parser.js~Parser",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/api/parser/parser.js~Parser.parse",
+    "access": null,
+    "description": "Check grammar, and other checkables, build a query tree",
+    "lineNumber": 238,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{*}"
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "sql",
+        "description": "sql command to parse"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "*"
+      ],
+      "spread": false,
+      "description": ""
+    },
+    "throws": [
+      {
+        "types": [
+          "*"
+        ],
+        "description": ""
+      }
+    ]
+  },
+  {
+    "__docId__": 80,
+    "kind": "file",
+    "name": "src/app.js",
+    "content": "'use strict';\n\nconst log = require('debug')('app');\n\nimport express from 'express';\nimport http from 'http';\nimport cors from 'cors';\nimport chalk from 'chalk';\nimport bodyParser from 'body-parser';\n\n// Create server\nconst app = express();\nconst server = http.createServer(app);\n\n// Use CORS\napp.use(cors());\n\n// Bodyparser\napp.use(bodyParser.urlencoded({ extended: false }));\napp.use(bodyParser.json());\n\n// Load Routes\nrequire('./routes').default(app);\n\n// Start Server\nserver.listen(process.env.PORT, () => log(`Server listening on port ${chalk['green'](process.env.PORT)}`));\n",
+    "static": true,
+    "longname": "src/app.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 81,
+    "kind": "variable",
+    "name": "log",
+    "memberof": "src/app.js",
+    "static": true,
+    "longname": "src/app.js~log",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/app.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 3,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 82,
+    "kind": "variable",
+    "name": "app",
+    "memberof": "src/app.js",
+    "static": true,
+    "longname": "src/app.js~app",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/app.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 12,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 83,
+    "kind": "variable",
+    "name": "server",
+    "memberof": "src/app.js",
+    "static": true,
+    "longname": "src/app.js~server",
+    "access": null,
+    "export": false,
+    "importPath": "adb/src/app.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 13,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 84,
+    "kind": "file",
+    "name": "src/index.js",
+    "content": "'use strict';\n\nimport 'babel-polyfill';\n\nexport default from './app';\n",
+    "static": true,
+    "longname": "src/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 85,
+    "kind": "file",
+    "name": "src/routes.js",
+    "content": "'use strict';\n\nimport express from 'express';\n\nexport default function(app) {\n\n  // Insert routes below\n  app.use('/api/manager',    require('./api/manager').routes);\n\n}\n",
+    "static": true,
+    "longname": "src/routes.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 86,
+    "kind": "function",
+    "name": "routes",
+    "memberof": "src/routes.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/routes.js~routes",
+    "access": null,
+    "export": true,
+    "importPath": "adb/src/routes.js",
+    "importStyle": "routes",
+    "description": null,
+    "lineNumber": 5,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "app",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 88,
+    "kind": "external",
+    "name": "Infinity",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Infinity",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Infinity",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 89,
+    "kind": "external",
+    "name": "NaN",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~NaN",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 90,
+    "kind": "external",
+    "name": "undefined",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~undefined",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 91,
+    "kind": "external",
+    "name": "null",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~null",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 92,
+    "kind": "external",
+    "name": "Object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Object",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 93,
+    "kind": "external",
+    "name": "object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~object",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 94,
+    "kind": "external",
+    "name": "Function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Function",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 95,
+    "kind": "external",
+    "name": "function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~function",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 96,
+    "kind": "external",
+    "name": "Boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Boolean",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 97,
+    "kind": "external",
+    "name": "boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~boolean",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 98,
+    "kind": "external",
+    "name": "Symbol",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Symbol",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 99,
+    "kind": "external",
+    "name": "Error",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Error",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 100,
+    "kind": "external",
+    "name": "EvalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/EvalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~EvalError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 101,
+    "kind": "external",
+    "name": "InternalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/InternalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~InternalError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 102,
+    "kind": "external",
+    "name": "RangeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RangeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RangeError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 103,
+    "kind": "external",
+    "name": "ReferenceError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ReferenceError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ReferenceError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 104,
+    "kind": "external",
+    "name": "SyntaxError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SyntaxError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~SyntaxError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 105,
+    "kind": "external",
+    "name": "TypeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~TypeError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 106,
+    "kind": "external",
+    "name": "URIError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/URIError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~URIError",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 107,
+    "kind": "external",
+    "name": "Number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Number",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 108,
+    "kind": "external",
+    "name": "number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~number",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 109,
+    "kind": "external",
+    "name": "Date",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Date",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 110,
+    "kind": "external",
+    "name": "String",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~String",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 111,
+    "kind": "external",
+    "name": "string",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~string",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 112,
+    "kind": "external",
+    "name": "RegExp",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RegExp",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 113,
+    "kind": "external",
+    "name": "Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 114,
+    "kind": "external",
+    "name": "Int8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int8Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 115,
+    "kind": "external",
+    "name": "Uint8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 116,
+    "kind": "external",
+    "name": "Uint8ClampedArray",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8ClampedArray",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 117,
+    "kind": "external",
+    "name": "Int16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int16Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 118,
+    "kind": "external",
+    "name": "Uint16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint16Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 119,
+    "kind": "external",
+    "name": "Int32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int32Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 120,
+    "kind": "external",
+    "name": "Uint32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint32Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 121,
+    "kind": "external",
+    "name": "Float32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float32Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 122,
+    "kind": "external",
+    "name": "Float64Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float64Array",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 123,
+    "kind": "external",
+    "name": "Map",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Map",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 124,
+    "kind": "external",
+    "name": "Set",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Set",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 125,
+    "kind": "external",
+    "name": "WeakMap",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakMap",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 126,
+    "kind": "external",
+    "name": "WeakSet",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakSet",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 127,
+    "kind": "external",
+    "name": "ArrayBuffer",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ArrayBuffer",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 128,
+    "kind": "external",
+    "name": "DataView",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~DataView",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 129,
+    "kind": "external",
+    "name": "JSON",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~JSON",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 130,
+    "kind": "external",
+    "name": "Promise",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Promise",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 131,
+    "kind": "external",
+    "name": "Generator",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Generator",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 132,
+    "kind": "external",
+    "name": "GeneratorFunction",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/GeneratorFunction",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~GeneratorFunction",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 133,
+    "kind": "external",
+    "name": "Reflect",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Reflect",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 134,
+    "kind": "external",
+    "name": "Proxy",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Proxy",
+    "access": null,
+    "description": "",
+    "lineNumber": 193,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 136,
+    "kind": "external",
+    "name": "CanvasRenderingContext2D",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~CanvasRenderingContext2D",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 137,
+    "kind": "external",
+    "name": "DocumentFragment",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~DocumentFragment",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 138,
+    "kind": "external",
+    "name": "Element",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Element",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~Element",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 139,
+    "kind": "external",
+    "name": "Event",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Event",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~Event",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 140,
+    "kind": "external",
+    "name": "Node",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Node",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~Node",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 141,
+    "kind": "external",
+    "name": "NodeList",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/NodeList",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~NodeList",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 142,
+    "kind": "external",
+    "name": "XMLHttpRequest",
+    "externalLink": "https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~XMLHttpRequest",
+    "access": null,
+    "description": "",
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 143,
+    "kind": "external",
+    "name": "AudioContext",
+    "externalLink": "https://developer.mozilla.org/en/docs/Web/API/AudioContext",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "static": true,
+    "longname": "BuiltinExternal/WebAPIExternal.js~AudioContext",
+    "access": null,
+    "description": "",
+    "lineNumber": 34,
+    "builtinExternal": true
+  }
+]

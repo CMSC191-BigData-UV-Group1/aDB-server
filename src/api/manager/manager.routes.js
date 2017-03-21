@@ -8,7 +8,24 @@ import express from 'express';
 const router = express.Router();
 const dbmanager = new Manager();
 
-// Async-Await version
+/**
+ * @api {post} /api/manager/run Run an sql query
+ * @apName PostRun
+ * @apiGroup Manager
+ *
+ * @apiParam (Account) {string}           sql - sql query
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *        "sql": "SELECT * from COURSE"
+ *     }
+ *
+ * @apiError SyntaxError syntax error
+ * @apiErrorExample Error-Response:
+ *     HTTP/1.1 301 Syntax Error
+ *     {
+ *       "error": "Syntax Error near 'SELECT'"
+ *     }
+ */
 router.post('/run', async (req, res) => {
   try {
     // run sql command to the db manager

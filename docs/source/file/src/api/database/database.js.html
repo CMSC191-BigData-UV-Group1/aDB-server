@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../../">
+  <title data-ice="title">src/api/database/database.js | ADB Server API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/CMSC191-BigData-UV-Group1/aDB-server" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-routes">routes</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database/database.js~DatabaseType.html">DatabaseType</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-DB_PREFIX">DB_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-PATH_DATA_ROOT">PATH_DATA_ROOT</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database-table</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/database-table.js~TableSchema.html">TableSchema</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/field-definition.js~FieldDefinition.html">FieldDefinition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TABLE_PREFIX">TABLE_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_DATE">TYPE_DATE</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_INTEGER">TYPE_INTEGER</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_TIME">TYPE_TIME</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_VARCHAR">TYPE_VARCHAR</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/default-models</div><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-db">db</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/manager</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/manager/manager.js~Manager.html">Manager</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-router">router</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/parser</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/parser/parser.js~Parser.html">Parser</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/api/database/database.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">
+&apos;use strict&apos;;
+
+const log = require(&apos;debug&apos;)(&apos;database&apos;);
+
+import _ from &apos;lodash&apos;;
+import $ from &apos;object-path&apos;;
+import fs from &apos;fs-extra&apos;;
+import path from &apos;path&apos;;
+import globber from &apos;require-glob&apos;;``
+import { PATH_DATA_ROOT, DB_PREFIX } from &apos;./database.constants&apos;;
+
+export default class DatabaseType {
+  constructor(options) {
+    if (!options) throw new Error(`Options required`);
+    if (!options.name) throw new Error(`Name required`);
+    if (!options.location) throw new Error(`Location required`);
+
+    this._options = {
+      name:     options.name,
+      location: options.location,
+      tables:   { }
+    }
+
+    // Add tables
+    // if (options.tables &amp;&amp; Array.isArray(options.tables))
+    //   options.tables.map(t =&gt; this.table(t.name, t));
+  }
+
+  get name() {
+    return $.get(this, &apos;_options.name&apos;);
+  }
+
+  get location() {
+    return $.get(this, &apos;_options.location&apos;);
+  }
+
+  get tables() {
+    return $.get(this, &apos;_options.tables&apos;);
+  }
+
+  /**
+   * Get / Create a table model
+   *
+   * @param {String} name
+   * @param {Schema} [schema]
+   */
+  table(name, schema) {
+    if (!name) throw new Error(`Table name required`);
+
+    const normalizedName = name.toLowerCase();
+
+    // Getter
+    if (!schema) {
+      // log(`============ GET TABLE ============`)
+      // log(`Name   `, name)
+      return $.get(this, &apos;_options.tables.&apos; + normalizedName);
+    }
+
+    // log(`============ SET TABLE ============`)
+    // log(`Name     `, name)
+    // log(`Schema   `, schema)
+
+    // Setter
+    if (this.tables[normalizedName]) throw new Error(`Table ${name} already exists in DB &apos;${this.name}&apos;`);
+
+    const TableSchema = require(&apos;../database-table&apos;).default;
+
+    // Check schema
+    if (!(schema instanceof TableSchema)) throw new Error(`Invalid schema &apos;`, schema, `&apos;`);
+
+    // Attach db
+    schema.attach(this);
+
+    // Add to map of tables
+    $.set(this, &apos;_options.tables.&apos; + normalizedName, schema);
+
+    // return table instance
+    return this.tables[normalizedName];
+  }
+
+  inspect() {
+    log(`================================== DB ==================================`)
+    log(`Name,      `, this.name)
+    log(`Location,  `, this.location)
+    // log(`Options   `, this._options)
+    log(`------------------------ TABLES ------------------------`)
+    _.keys(this.tables).map(tb =&gt; this.tables[tb].inspect())
+  }
+
+  /**
+   * Create a database connection
+   *
+   * @param {*} options
+   */
+  static create(options) {
+    if (!options) throw new Error(`Options required`);
+    if (!options.name) throw new Error(`DB Name required`);
+
+    // normalize name
+    const normalizedName = options.name.toLowerCase();
+
+    // data path
+    const dbPath = path.join(PATH_DATA_ROOT, DB_PREFIX + normalizedName);
+
+    // Check exist / validity
+    if (fs.existsSync(dbPath))
+      throw new Error(`DB with same name exists &apos;${options.name}&apos;`);
+
+    // Write db metadata
+    fs.outputFileSync(path.join(dbPath, &apos;meta.json&apos;), JSON.stringify({
+      name: options.name
+    }, null, 2));
+
+    // Create DB instance
+    return new this({
+      name: normalizedName,
+      location: dbPath
+    })
+  }
+
+  /**
+   * Open a database connection
+   *
+   * @param {String}  name
+   * @param {Object}  options
+   * @param {Boolean} options.createNotExist
+   */
+  static open(name, options) {
+    if (!name) throw new Error(`DB Name required`);
+
+    // normalize name
+    const normalizedName = name.toLowerCase();
+
+    // data path
+    const dbPath = path.join(PATH_DATA_ROOT, DB_PREFIX + normalizedName);
+
+    if (!fs.existsSync(dbPath)) {
+      // If !exist, create new
+      if (options &amp;&amp; options.createNotExist)
+        return this.create({ name })
+
+      throw new Error(`Db not found &apos;${name}&apos;`)
+    }
+
+    // Find tables
+    // const globbedTables = globber.sync([path.join(dbPath + &apos;/tb-*/meta.json&apos;)]);
+
+    // log(`globbedTables `, globbedTables);
+
+    // const TableSchema = require(&apos;../database-table&apos;).default;
+
+    // Create TableTypes
+    // const tables = _.reduce(globbedTables, (r, meta, path) =&gt; r.concat(new TableSchema(meta)), [])
+
+    // Create DB instance
+    return new this({
+      name: normalizedName,
+      location: dbPath,
+      // tables
+    })
+  }
+
+  async select(parsed) {
+
+    log(`=========== SELECT =========`);
+    log(`DB    `, this.name);
+    log(`Parsed `, parsed);
+
+    const TableSchema = require(&apos;../database-table&apos;).default
+
+    // Load Tables
+    const tables = _.values(parsed.tableAlias)
+      .reduce((r, tableName) =&gt; ({ ...r, [tableName]: this.table(tableName) }), {})
+
+    // log(`tables `, tables);
+
+    const err = _.keys(tables).find(t =&gt; !(tables[t] instanceof TableSchema))
+
+    if (err) throw new Error(`Invalid Table `, err)
+
+    const found = {};
+
+    // Find all in every table
+    await Promise.all(_.keys(tables).map(async tableName =&gt; {
+      const upperCasedKey = tableName.toUpperCase();
+      const filter        = { } //parsed.conditions[upperCasedKey] || {}
+      const projection    = _.keys(parsed.data)
+      found[tableName] = await tables[tableName].find(filter, projection);
+    }))
+
+    log(found)
+
+    // Merge
+    const all = _.values(found).reduce((r, v) =&gt; r.concat(v), []);
+    log(`all `, all);
+
+    let sameKeys = _.values(tables).map(t =&gt; _.keys(t.columns))
+    sameKeys = sameKeys.slice(1).reduce((r, v) =&gt; _.intersection(r, v), sameKeys[0]);
+    log(`SameKeys `, sameKeys);
+
+    const grouped = _.groupBy(all, v =&gt; sameKeys.map(k =&gt; v[k]).join(&apos;-&apos;))
+    log(`grouped`, grouped);
+
+    const merged = _.values(grouped).map(pair =&gt; pair.reduce((r, v) =&gt; ({ ...r, ...v }), {}))
+    log(`Merged `, merged);
+
+    // Filter
+    const filter = _.values(parsed.conditions).reduce((r, v) =&gt; ({ ...r, ...v }), {})
+    log(`Filter `, filter)
+
+    const conformFieldFunction = (filter, key) =&gt; ({
+      [key.toLowerCase()]: v =&gt; _.eq(v, filter[key])
+    })
+
+    const comparisonFunction = _.conforms(_.keys(filter).reduce((r, key) =&gt; ({ ...r, ... conformFieldFunction(filter, key)  }), {}))
+
+    log(`comparisonFunction `, comparisonFunction);
+
+    // Filter
+    const filtered = _.filter(merged, comparisonFunction);
+
+    log(`Filtered `, filtered)
+
+    return filtered
+  }
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

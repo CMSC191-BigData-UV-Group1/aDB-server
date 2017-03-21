@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../../">
+  <title data-ice="title">src/api/parser/parser.js | ADB Server API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/CMSC191-BigData-UV-Group1/aDB-server" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-routes">routes</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database/database.js~DatabaseType.html">DatabaseType</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-DB_PREFIX">DB_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-PATH_DATA_ROOT">PATH_DATA_ROOT</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/database-table</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/database-table.js~TableSchema.html">TableSchema</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/database-table/field-definition.js~FieldDefinition.html">FieldDefinition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TABLE_PREFIX">TABLE_PREFIX</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_DATE">TYPE_DATE</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_INTEGER">TYPE_INTEGER</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_TIME">TYPE_TIME</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TYPE_VARCHAR">TYPE_VARCHAR</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/default-models</div><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-db">db</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/manager</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/manager/manager.js~Manager.html">Manager</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-router">router</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">api/parser</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/api/parser/parser.js~Parser.html">Parser</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/api/parser/parser.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">&apos;use strict&apos;;
+
+const log = require(&apos;debug&apos;)(&apos;parser&apos;)
+
+import _ from &apos;lodash&apos;;
+
+// Tables
+import COURSE         from &apos;./../../tables/COURSE&apos;;
+import COURSEOFFERING from &apos;./../../tables/COURSEOFFERING&apos;;
+import STUDCOURSE     from &apos;./../../tables/STUDCOURSE&apos;;
+import STUDENT        from &apos;./../../tables/STUDENT&apos;;
+import STUDENTHISTORY from &apos;./../../tables/STUDENTHISTORY&apos;;
+
+// Enums
+// import SemOffered     from &apos;./../../enums/SemOffered&apos;;
+// import Semester       from &apos;./../../enums/Semester&apos;;
+
+
+export default class Parser {
+  static get regex() {
+    return {
+      SELECT_STATEMENT: /^\s*SELECT\s+/i,
+      INSERT_STATEMENT: /^\s*INSERT\s+INTO\s+/i,
+      SELECT: {
+        COLUMNS: /(\*\s+)|((\w+\s*)(,\s*\w+\s*)*)/,
+        FROM: /^FROM\s+/i,
+        TABLES: /(\w+\s*)(,\s*\w+\s*)*/,
+        WHERE: /^WHERE\s+\w+\s*=\s*((\w+)|(\&apos;.*\&apos;))\s*;/i
+      },
+      INSERT: {
+        TABLE: /\w+\s+/,
+        FORMAL_VALUES: /\(\s*(\w+\s*)(,\s*\w+)*\s*\)\s+/,
+        VALUES: /^VALUES\s+/i,
+        ACTUAL_VALUES: /\(\s*((\&apos;.*\&apos;)|(?!,.+))\s*(,\s*(\&apos;.*\&apos;)|(?!,.+))*\s*\)\s*;$/
+      }
+    };
+  }
+
+  static get tables() {
+    return {
+      &apos;COURSE&apos;: COURSE,
+      &apos;COURSEOFFERING&apos;: COURSEOFFERING,
+      &apos;STUDCOURSE&apos;: STUDCOURSE,
+      &apos;STUDENT&apos;: STUDENT,
+      &apos;STUDENTHISTORY&apos;: STUDENTHISTORY
+    };
+  }
+
+  static get columns() {
+    let columns = [];
+
+    for (let table of Object.keys(Parser.tables)) {
+      for (let column of Parser.tables[table][&apos;columns&apos;]) {
+        columns.push(column[&apos;name&apos;]);
+      }
+    }
+
+    return columns;
+  }
+
+  /**
+   * Parse the SELECT statement and check for syntax errors
+   * @param {String} sql - sql command to parse
+   * @returns {Object} res - Object that contains the important results of the parser
+   * @throws {*}
+   */
+  static processSELECT(sql, db) {
+    /**
+     * res object will contain these keys:
+     *
+     * data - Object that contains key-value pairs of column-table
+     * conditions - the conditions in the WHERE statement (if there is)
+     */
+    let res = {
+      command: &apos;select&apos;,
+      data: {},
+      conditions: {}
+    };
+
+    // Removed processed regex
+    sql = sql.replace(Parser.regex.SELECT_STATEMENT, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.COLUMNS)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Parse the columns
+    let requestedColumns = sql.match(Parser.regex.SELECT.COLUMNS)[0].split(&apos;,&apos;);
+    requestedColumns = requestedColumns.map(e =&gt; e.trim());
+
+    // Removed processed regex
+    sql = sql.replace(Parser.regex.SELECT.COLUMNS, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.FROM)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Removed processed regex
+    sql = sql.replace(Parser.regex.SELECT.FROM, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.TABLES)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Parse the tables
+    let requestedTables = sql.match(Parser.regex.SELECT.TABLES)[0].split(&apos;,&apos;);
+    requestedTables = requestedTables.map(e =&gt; e.trim());
+
+    // If &quot;*&quot; is selected, add all the columns of all the tables to res.data
+    if (requestedColumns[0] === &apos;*&apos;) {
+      requestedTables.forEach(table =&gt; {
+        Parser.tables[table][&apos;columns&apos;].forEach(col =&gt; {
+          res.data[col.name] = table;
+        });
+      });
+    }
+    else {
+      for (let i = 0; i &lt; requestedColumns.length; i++) {
+        let col = requestedColumns[i];
+
+        let count = 0;
+        requestedTables.forEach(table =&gt; {
+          Parser.tables[table][&apos;columns&apos;].forEach(e =&gt; {
+            if (e[&apos;name&apos;] == col)
+              res.data[col] = table;
+          })
+          count += Parser.tables[table][&apos;columns&apos;].filter(e =&gt; e[&apos;name&apos;] === col).length;
+        });
+
+        // Checks for ambiguous columns (if no aliasing)
+        if (count &gt; 1) {
+          throw new Error(`Column &apos;${col}&apos; in field list is ambiguous`);
+        }
+      }
+    }
+
+    // Removed processed regex
+    sql = sql.replace(Parser.regex.SELECT.TABLES, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.WHERE)) {
+      log(sql)
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Parse conditions
+    let conditions = sql.match(Parser.regex.SELECT.WHERE)[0];
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.SELECT.WHERE)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    let cond = sql.replace(/^WHERE\s+/, &apos;&apos;);
+    let column = cond.split(&apos;=&apos;)[0].trim();
+    res.conditions[requestedTables[0]] = {};
+    let temp = cond.split(&apos;=&apos;)[1].trim();
+    res.conditions[requestedTables[0]][column] = temp.substring(0, temp.length-1);
+
+    return res;
+  }
+
+  /**
+   * Parse the INSERT statement and check for syntax errors
+   * @param {String} sql - sql command to parse
+   * @returns {Object} res - Object that contains the important results of the parser
+   * @throws {*}
+   */
+  static processINSERT(sql, db) {
+    /**
+     * res object will contain these keys:
+     *
+     * table - the table where the row will be inserted
+     * formalValues - the columns of the table that the data will be inserted
+     * actualValues - the actual values that corresponds to each columns in the formalValues
+     */
+    let res = {
+      command: &apos;insert&apos;
+    };
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT_STATEMENT, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.TABLE)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Parse the table
+    res[&apos;table&apos;] = sql.match(Parser.regex.INSERT.TABLE)[0].trim();
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.TABLE, &apos;&apos;);
+
+    // Parse the formal values
+    res[&apos;formalValues&apos;] = sql.match(Parser.regex.INSERT.FORMAL_VALUES)[0].trim().replace(/\(|\)/g, &apos;&apos;);
+    res[&apos;formalValues&apos;] = res[&apos;formalValues&apos;].split(&apos;,&apos;).map(e =&gt; e.trim());
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.FORMAL_VALUES, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.VALUES)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.VALUES, &apos;&apos;);
+
+    // Check for syntax error
+    if (!sql.match(Parser.regex.INSERT.ACTUAL_VALUES)) {
+      throw new Error(`Syntax error near &apos;${sql}&apos;`);
+    }
+
+    // Parse the actual values
+    res[&apos;actualValues&apos;] = sql.match(Parser.regex.INSERT.ACTUAL_VALUES)[0].trim().replace(/\(|\)|;/g, &apos;&apos;);
+    res[&apos;actualValues&apos;] = res[&apos;actualValues&apos;].split(&apos;,&apos;).map(e =&gt; e.trim());
+
+    // Remove processed regex
+    sql = sql.replace(Parser.regex.INSERT.ACTUAL_VALUES, &apos;&apos;);
+
+    if (res[&apos;formalValues&apos;].length !== res[&apos;actualValues&apos;].length) {
+      throw new Error(`Length of formal values and actual values are not the same. Expected ${res[&apos;formalValues&apos;].length}, got ${res[&apos;actualValues&apos;].length}.`);
+    }
+
+    return res;
+  }
+
+  /**
+   * Check grammar, and other checkables, build a query tree
+   * @param {String} sql - sql command to parse
+   * @returns {*}
+   * @throws {*}
+   */
+  static parse(sql, db) {
+    // Check if matched with SELECT statement
+    if (sql.match(Parser.regex.SELECT_STATEMENT)) {
+      return Parser.processSELECT(sql, db);
+    }
+
+    // Check if matched with INSERT statement
+    if (sql.match(Parser.regex.INSERT_STATEMENT)) {
+      return Parser.processINSERT(sql, db);
+    }
+
+    throw new Error(&apos;Syntax Error. Please use either SELECT or INSERT statements only.&apos;)
+  }
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "ADB Server",
+  "version": "0.1.0",
+  "description": "ADB Server API Documentation",
+  "title": "ADB Server",
+  "url" : "https://adb-server.herokuapp.com/api",
+  "header": {
+    "title": "ADB Server",
+    "filename": "README.md"
+  }
+}
