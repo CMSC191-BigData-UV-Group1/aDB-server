@@ -2072,7 +2072,7 @@
     "__docId__": 85,
     "kind": "file",
     "name": "src/routes.js",
-    "content": "'use strict';\n\nimport express from 'express';\n\nexport default function(app) {\n\n  // Insert routes below\n  app.use('/api/manager',    require('./api/manager').routes);\n\n}\n",
+    "content": "'use strict';\n\nimport path from 'path';\nimport express from 'express';\nimport { red, green, blue } from 'chalk';\n\nexport default function(app) {\n\n  // Insert routes below\n  app.use('/api/manager',    require('./api/manager').routes);\n\n  // Developers docs\n  app.use('/docs/server', express.static(path.join(__dirname, '../docs/source')));\n  app.use('/docs/api', express.static(path.join(__dirname, '../docs/api')));\n\n  // Alternate Fallback\n  app.route('*').get((req, res) => res.sendFile(path.join(__dirname, 'index.html')));\n}\n",
     "static": true,
     "longname": "src/routes.js",
     "access": null,
@@ -2093,7 +2093,7 @@
     "importPath": "adb/src/routes.js",
     "importStyle": "routes",
     "description": null,
-    "lineNumber": 5,
+    "lineNumber": 7,
     "undocument": true,
     "unknown": [
       {

@@ -21,7 +21,24 @@ var log = require('debug')('manager.routes');
 var router = _express2.default.Router();
 var dbmanager = new _manager2.default();
 
-// Async-Await version
+/**
+ * @api {post} /api/manager/run Run an sql query
+ * @apName PostRun
+ * @apiGroup Manager
+ *
+ * @apiParam (Account) {string}           sql - sql query
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *        "sql": "SELECT * from COURSE"
+ *     }
+ *
+ * @apiError SyntaxError syntax error
+ * @apiErrorExample Error-Response:
+ *     HTTP/1.1 301 Syntax Error
+ *     {
+ *       "error": "Syntax Error near 'SELECT'"
+ *     }
+ */
 router.post('/run', function () {
   var _ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee(req, res) {
     var result;

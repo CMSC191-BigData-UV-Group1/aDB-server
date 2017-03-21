@@ -54,13 +54,21 @@
 <div class="content" data-ice="content"><h1 data-ice="title">src/routes.js</h1>
 <pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">&apos;use strict&apos;;
 
+import path from &apos;path&apos;;
 import express from &apos;express&apos;;
+import { red, green, blue } from &apos;chalk&apos;;
 
 export default function(app) {
 
   // Insert routes below
   app.use(&apos;/api/manager&apos;,    require(&apos;./api/manager&apos;).routes);
 
+  // Developers docs
+  app.use(&apos;/docs/server&apos;, express.static(path.join(__dirname, &apos;../docs/source&apos;)));
+  app.use(&apos;/docs/api&apos;, express.static(path.join(__dirname, &apos;../docs/api&apos;)));
+
+  // Alternate Fallback
+  app.route(&apos;*&apos;).get((req, res) =&gt; res.sendFile(path.join(__dirname, &apos;index.html&apos;)));
 }
 </code></pre>
 
