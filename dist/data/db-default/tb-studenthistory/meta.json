@@ -1,0 +1,46 @@
+{
+  "database": "default",
+  "name": "StudentHistory",
+  "schema": {
+    "studno": {
+      "_options": {
+        "path": "StudNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "description": {
+      "_options": {
+        "path": "Description",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "datefiled": {
+      "_options": {
+        "path": "DateFiled",
+        "type": "DATE",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "action": {
+      "_options": {
+        "path": "Action",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "dateresolved": {
+      "_options": {
+        "path": "DateResolved",
+        "type": "DATE",
+        "validators": [],
+        "setters": []
+      }
+    }
+  }
+}

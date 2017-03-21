@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/api/database-table/index.js"],"names":["default"],"mappings":";AACA;;;;;;;;;AAIA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;;;;;;QAFOA,O","file":"index.js","sourcesContent":["\n'use strict';\n\nexport default from './database-table'\n\nexport * from './field-definition';\n"]}

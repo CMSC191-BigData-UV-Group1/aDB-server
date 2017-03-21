@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/api/database-table/database-table.constants.js"],"names":["TABLE_PREFIX"],"mappings":";AACA;;;;;AAEO,IAAMA,sCAAe,KAArB","file":"database-table.constants.js","sourcesContent":["\n'use strict';\n\nexport const TABLE_PREFIX = 'tb-'\n"]}

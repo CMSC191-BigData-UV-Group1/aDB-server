@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "Semester",
+      "type": "ENUM",
+      "keys": ["PRIMARY"]
+    },
+    {
+      "name": "AcadYear",
+      "type": "VARCHAR",
+      "keys": ["PRIMARY"]
+    },
+    {
+      "name": "CNo",
+      "type": "VARCHAR",
+      "keys": ["FOREIGN"]
+    },
+    {
+      "name": "Section",
+      "type": "VARCHAR",
+      "keys": ["PRIMARY"]
+    },
+    {
+      "name": "Time",
+      "type": "TIME",
+      "keys": []
+    },
+    {
+      "name": "MaxStud",
+      "type": "INTEGER",
+      "keys": []
+    }
+  ]
+}

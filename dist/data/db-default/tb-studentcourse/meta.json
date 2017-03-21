@@ -1,0 +1,38 @@
+{
+  "database": "default",
+  "name": "StudentCourse",
+  "schema": {
+    "semester": {
+      "_options": {
+        "path": "Semester",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "cno": {
+      "_options": {
+        "path": "CNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "studno": {
+      "_options": {
+        "path": "StudNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "acadyear": {
+      "_options": {
+        "path": "AcadYear",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    }
+  }
+}

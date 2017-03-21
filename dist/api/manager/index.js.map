@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/api/manager/index.js"],"names":["default","routes"],"mappings":"AAAA;;AAEA;;;;;;;;;;;;;;;;;QACOA,O;;AAEP;;QACOC,M","file":"index.js","sourcesContent":["'use strict';\n\n// Object\nexport default from './manager';\n\n// Routes\nexport routes from './manager.routes';\n"]}

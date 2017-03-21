@@ -1,0 +1,54 @@
+{
+  "database": "default",
+  "name": "CourseOffering",
+  "schema": {
+    "semester": {
+      "_options": {
+        "path": "Semester",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "acadyear": {
+      "_options": {
+        "path": "AcadYear",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "cno": {
+      "_options": {
+        "path": "CNo",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "section": {
+      "_options": {
+        "path": "Section",
+        "type": "VARCHAR",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "time": {
+      "_options": {
+        "path": "Time",
+        "type": "TIME",
+        "validators": [],
+        "setters": []
+      }
+    },
+    "maxstud": {
+      "_options": {
+        "path": "MaxStud",
+        "type": "INTEGER",
+        "validators": [],
+        "setters": []
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "cno": "CMSC 191",
+    "ctitle": "Special Topics",
+    "cdesc": "Big Data Management and Trends",
+    "noofunits": "3.0",
+    "haslab": "1",
+    "semoffered": "1st"
+  },
+  {
+    "cno": "CMSC 192",
+    "ctitle": "Special Topics",
+    "cdesc": "Big Data Management and Trends",
+    "noofunits": "3.0",
+    "haslab": "1",
+    "semoffered": "1st"
+  },
+  {
+    "cno": "CMSC 191",
+    "ctitle": "Special Topics",
+    "cdesc": "Big Data Management and Trends",
+    "noofunits": "3.0",
+    "haslab": "1",
+    "semoffered": "1st"
+  }
+]

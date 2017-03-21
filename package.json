@@ -9,6 +9,7 @@
     "build": "npm run clean && babel src -d dist -s --copy-files",
     "dev": "nodemon --watch 'src/**/*.js' --exec npm run start:dev",
     "start:dev": "node --require dotenv/config --require babel-register src/index.js",
+    "start:prod": "node --require dotenv/config dist/index.js",
     "start": "node dist/index.js"
   },
   "repository": {

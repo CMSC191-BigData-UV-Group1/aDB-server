@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/index.js"],"names":["default"],"mappings":"AAAA;;;;;;;AAEA;;;;;;;;QAEOA,O","file":"index.js","sourcesContent":["'use strict';\n\nimport 'babel-polyfill';\n\nexport default from './app';\n"]}
