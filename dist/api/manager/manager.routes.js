@@ -55,7 +55,7 @@ router.post('/run', function () {
 
 
             // log result
-            log('result ', result);
+            log('[POST] result ', result);
 
             // send result
             res.status(200).json({ result: result });
@@ -68,7 +68,7 @@ router.post('/run', function () {
             _context.t0 = _context['catch'](0);
 
             // log error
-            log('run err ', _context.t0);
+            log('[POST] run err ', _context.t0);
 
             // send error
             res.status(200).json({ error: _context.t0.message });
@@ -83,6 +83,71 @@ router.post('/run', function () {
 
   return function (_x, _x2) {
     return _ref.apply(this, arguments);
+  };
+}());
+
+/**
+ * @api {get} /api/manager/run Run an sql query
+ * @apName PostRun
+ * @apiGroup Manager
+ *
+ * @apiParam (Account) {string}           sql - sql query
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *        "sql": "SELECT * from COURSE"
+ *     }
+ *
+ * @apiError SyntaxError syntax error
+ * @apiErrorExample Error-Response:
+ *     HTTP/1.1 301 Syntax Error
+ *     {
+ *       "error": "Syntax Error near 'SELECT'"
+ *     }
+ */
+router.get('/run', function () {
+  var _ref2 = _asyncToGenerator(regeneratorRuntime.mark(function _callee2(req, res) {
+    var result;
+    return regeneratorRuntime.wrap(function _callee2$(_context2) {
+      while (1) {
+        switch (_context2.prev = _context2.next) {
+          case 0:
+            _context2.prev = 0;
+            _context2.next = 3;
+            return dbmanager.run(req.query.sql);
+
+          case 3:
+            result = _context2.sent;
+
+
+            // log result
+            log('[GET] result ', result);
+
+            // send result
+            res.status(200).json({ result: result });
+
+            _context2.next = 12;
+            break;
+
+          case 8:
+            _context2.prev = 8;
+            _context2.t0 = _context2['catch'](0);
+
+            // log error
+            log('[GET] run err ', _context2.t0);
+
+            // send error
+            res.status(200).json({ error: _context2.t0.message });
+
+          case 12:
+          case 'end':
+            return _context2.stop();
+        }
+      }
+    }, _callee2, undefined, [[0, 8]]);
+  }));
+
+  return function (_x3, _x4) {
+    return _ref2.apply(this, arguments);
   };
 }());
 

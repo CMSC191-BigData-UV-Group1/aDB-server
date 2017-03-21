@@ -68,7 +68,7 @@ export default function(app) {
   app.use(&apos;/docs/api&apos;, express.static(path.join(__dirname, &apos;../docs/api&apos;)));
 
   // Alternate Fallback
-  app.route(&apos;*&apos;).get((req, res) =&gt; res.sendFile(path.join(__dirname, &apos;index.html&apos;)));
+  app.route(&apos;*&apos;).get((req, res) =&gt; res.sendFile(path.join(__dirname, &apos;public&apos;, &apos;index.html&apos;)));
 }
 </code></pre>
 
